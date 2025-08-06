@@ -1,15 +1,15 @@
 use crate::es_client::EsClient;
 use crate::types::*;
-use crate::crypto::{CryptoManager, SecureConnectionData, SecureString};
+use crate::crypto::{CryptoManager, SecureConnectionData};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::fs;
 use std::path::PathBuf;
 use tauri::api::path::app_data_dir;
-use tauri::{Config, State};
+use tauri::State;
 use uuid::Uuid;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
 pub struct ConnectionManager {
     connections: Mutex<HashMap<String, EsConnection>>,

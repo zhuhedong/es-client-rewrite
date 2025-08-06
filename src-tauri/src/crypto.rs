@@ -3,11 +3,9 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use anyhow::{anyhow, Result};
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::{rand_core::OsRng as ArgonOsRng, SaltString}};
 use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
 use tauri::api::path::app_data_dir;
 
 #[derive(Debug, Serialize, Deserialize)]
