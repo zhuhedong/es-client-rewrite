@@ -15,7 +15,7 @@ async fn main() {
     // Create connection manager
     let connection_manager = ConnectionManager::new();
 
-    tauri::Builder::new()
+    tauri::Builder::default()
         .manage(connection_manager)
         .invoke_handler(tauri::generate_handler![
             add_connection,
