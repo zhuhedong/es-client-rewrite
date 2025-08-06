@@ -8,7 +8,7 @@
     "distDir": "../dist",
     "devPath": "http://localhost:5173",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": ""
   },
   "tauri": {
     "allowlist": {
