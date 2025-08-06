@@ -6,6 +6,7 @@ mod es_client;
 mod types;
 
 use commands::*;
+use tauri::Wry;
 
 #[tokio::main]
 async fn main() {
@@ -15,7 +16,7 @@ async fn main() {
     // Create connection manager
     let connection_manager = ConnectionManager::new();
 
-    tauri::Builder::default()
+    tauri::Builder::<Wry>::new()
         .manage(connection_manager)
         .invoke_handler(tauri::generate_handler![
             add_connection,
