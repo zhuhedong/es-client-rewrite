@@ -5,11 +5,11 @@
   "description": "Elasticsearch client built with Rust + Tauri",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite", 
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "tauri dev", 
     "tauri:build": "tauri build"
   },
   "dependencies": {
