@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use reqwest::Client;
 use serde_json::Value;
 use std::time::Duration;
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 #[derive(Clone)]
 pub struct EsClient {
@@ -13,7 +13,7 @@ pub struct EsClient {
 
 impl EsClient {
     pub fn new(connection: EsConnection) -> Self {
-        let mut client_builder = Client::builder()
+        let client_builder = Client::builder()
             .timeout(Duration::from_secs(30))
             .danger_accept_invalid_certs(true);
 
