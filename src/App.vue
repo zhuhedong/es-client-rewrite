@@ -116,8 +116,9 @@ const onMenuClick = (key: string) => {
 }
 
 .sider {
-  background: linear-gradient(180deg, var(--gray-900) 0%, var(--gray-800) 100%) !important;
+  background: linear-gradient(180deg, var(--gray-50) 0%, white 100%) !important;
   border-right: 1px solid var(--gray-200) !important;
+  box-shadow: var(--shadow) !important;
 }
 
 .logo {
@@ -125,20 +126,21 @@ const onMenuClick = (key: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--gray-800);
   font-weight: 700;
   font-size: 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--gray-200);
+  background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+  color: white;
   margin: 12px;
   border-radius: var(--radius-lg);
   transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
 }
 
 .logo:hover {
-  background: rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
 }
 
 .header {
@@ -199,6 +201,7 @@ const onMenuClick = (key: string) => {
 /* 侧边栏菜单样式重写 */
 :deep(.arco-menu-inline) {
   padding: 1rem 0.75rem;
+  background: transparent !important;
 }
 
 :deep(.arco-menu-item) {
@@ -206,16 +209,20 @@ const onMenuClick = (key: string) => {
   margin: 0.25rem 0;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
+  color: var(--gray-700) !important;
+  background: transparent !important;
 }
 
 :deep(.arco-menu-item:hover) {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: var(--gray-100) !important;
+  color: var(--gray-900) !important;
   transform: translateX(4px);
 }
 
 :deep(.arco-menu-item.arco-menu-selected) {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  color: #60a5fa !important;
+  background: linear-gradient(135deg, var(--primary-color), var(--info-color)) !important;
+  color: white !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 :deep(.arco-menu-item.arco-menu-selected::before) {
@@ -224,6 +231,7 @@ const onMenuClick = (key: string) => {
 
 :deep(.arco-menu-item-disabled) {
   opacity: 0.5 !important;
+  color: var(--gray-400) !important;
 }
 
 :deep(.arco-menu-icon) {
