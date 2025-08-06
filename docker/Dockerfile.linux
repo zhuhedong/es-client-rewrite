@@ -1,0 +1,54 @@
+# 使用 Ubuntu 20.04 作为基础镜像
+FROM ubuntu:20.04
+
+# 设置非交互模式
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    pkg-config \
+    libssl-dev \
+    libgtk-3-dev \
+    libwebkit2gtk-4.0-dev \
+    libappindicator3-dev \
+    librsvg2-dev \
+    patchelf \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Node.js 18
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# 安装 Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制项目文件
+COPY package*.json ./
+COPY src ./src/
+COPY src-tauri ./src-tauri/
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tsconfig*.json ./
+
+# 安装 Node.js 依赖
+RUN npm ci
+
+# 构建前端
+RUN npm run build
+
+# 构建 Tauri 应用
+RUN cd src-tauri && cargo build --release
+
+# 创建发布目录
+RUN mkdir -p /app/dist && \
+    cp -r src-tauri/target/release/bundle/* /app/dist/ 2>/dev/null || true
+
+# 默认命令
+CMD ["cp", "-r", "/app/dist", "/app/output/"]
