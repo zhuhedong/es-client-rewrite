@@ -296,13 +296,20 @@ const onPageChange = (page: number, pageSize: number) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  background: linear-gradient(135deg, var(--primary-color), var(--warning-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .no-connection {
@@ -310,22 +317,29 @@ const onPageChange = (page: number, pageSize: number) => {
   justify-content: center;
   align-items: center;
   height: 400px;
+  background: linear-gradient(135deg, var(--gray-50), white);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--gray-300);
 }
 
 .search-content {
-  height: calc(100% - 80px);
+  height: calc(100% - 120px);
 }
 
 .result-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .result-stats {
-  color: #666;
-  font-size: 12px;
-  font-weight: normal;
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  background: var(--gray-100);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
 }
 
 .no-result {
@@ -333,33 +347,155 @@ const onPageChange = (page: number, pageSize: number) => {
   justify-content: center;
   align-items: center;
   height: 200px;
+  background: linear-gradient(135deg, var(--gray-50), white);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--gray-300);
 }
 
 .source-data {
-  background: #f5f5f5;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1.4;
+  background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.75rem;
+  line-height: 1.6;
   max-height: 200px;
   overflow: auto;
   margin: 0;
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
 .json-result {
-  background: #f5f5f5;
-  padding: 16px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, var(--gray-900), var(--gray-800));
+  color: #e2e8f0;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
   max-height: 600px;
   overflow: auto;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 0.875rem;
+  line-height: 1.6;
   margin: 0;
+  border: 1px solid var(--gray-700);
+  box-shadow: var(--shadow-md);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
 .pagination-wrapper {
-  margin-top: 16px;
+  margin-top: 1.5rem;
   display: flex;
   justify-content: center;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+}
+
+/* 现代化卡片样式 */
+:deep(.arco-card) {
+  background: linear-gradient(135deg, white, var(--gray-50));
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow) !important;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+:deep(.arco-card:hover) {
+  box-shadow: var(--shadow-lg) !important;
+  transform: translateY(-2px);
+}
+
+:deep(.arco-card-header) {
+  background: linear-gradient(135deg, var(--gray-50), white) !important;
+  color: var(--gray-800) !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+:deep(.arco-card-header-title) {
+  color: var(--gray-800) !important;
+  font-weight: 700 !important;
+  font-size: 1.125rem !important;
+}
+
+:deep(.arco-card-body) {
+  padding: 1.5rem !important;
+}
+
+/* 现代化表单样式 */
+:deep(.arco-form-item-label-text) {
+  font-weight: 600 !important;
+  color: var(--gray-700) !important;
+  font-size: 0.875rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+}
+
+:deep(.arco-textarea) {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+}
+
+/* 现代化标签页样式 */
+:deep(.arco-tabs-nav) {
+  background: var(--gray-50) !important;
+  padding: 0.5rem !important;
+  border-radius: var(--radius-lg) !important;
+  margin-bottom: 1.5rem !important;
+}
+
+:deep(.arco-tabs-tab) {
+  border-radius: var(--radius) !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-tabs-tab-active) {
+  background: white !important;
+  color: var(--primary-color) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* 快速模板按钮 */
+:deep(.arco-space-vertical .arco-btn) {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  background: var(--gray-50) !important;
+  border: 1px solid var(--gray-200) !important;
+  color: var(--gray-700) !important;
+  font-weight: 500 !important;
+}
+
+:deep(.arco-space-vertical .arco-btn:hover) {
+  background: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+  transform: translateX(4px) !important;
+}
+
+/* 分页样式 */
+:deep(.arco-pagination) {
+  gap: 0.5rem !important;
+}
+
+:deep(.arco-pagination-item) {
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--gray-300) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-pagination-item:hover) {
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  transform: translateY(-1px) !important;
+}
+
+:deep(.arco-pagination-item-active) {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: white !important;
 }
 </style>

@@ -116,23 +116,37 @@ const onMenuClick = (key: string) => {
 }
 
 .sider {
-  background: #001529;
+  background: linear-gradient(180deg, var(--gray-900) 0%, var(--gray-800) 100%) !important;
+  border-right: 1px solid var(--gray-200) !important;
 }
 
 .logo {
-  height: 64px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: bold;
-  border-bottom: 1px solid #333;
+  font-weight: 700;
+  font-size: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  margin: 12px;
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .header {
-  background: white;
-  padding: 0 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+  padding: 0 2rem;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .header-content {
@@ -142,16 +156,77 @@ const onMenuClick = (key: string) => {
   height: 100%;
 }
 
+.header-content h2 {
+  color: var(--gray-800);
+  font-weight: 600;
+  font-size: 1.375rem;
+  margin: 0;
+}
+
 .connection-info {
-  color: #666;
-  font-size: 14px;
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  background: var(--gray-100);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.connection-info::before {
+  content: "🔗";
+  font-size: 0.75rem;
 }
 
 .content {
-  margin: 24px;
-  padding: 24px;
+  margin: 1.5rem;
+  padding: 2rem;
   background: white;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
   overflow: auto;
+  border: 1px solid var(--gray-200);
+  transition: all 0.2s ease;
+}
+
+.content:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* 侧边栏菜单样式重写 */
+:deep(.arco-menu-inline) {
+  padding: 1rem 0.75rem;
+}
+
+:deep(.arco-menu-item) {
+  border-radius: var(--radius-lg) !important;
+  margin: 0.25rem 0;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-menu-item:hover) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(4px);
+}
+
+:deep(.arco-menu-item.arco-menu-selected) {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+}
+
+:deep(.arco-menu-item.arco-menu-selected::before) {
+  display: none !important;
+}
+
+:deep(.arco-menu-item-disabled) {
+  opacity: 0.5 !important;
+}
+
+:deep(.arco-menu-icon) {
+  margin-right: 0.75rem !important;
 }
 </style>

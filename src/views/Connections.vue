@@ -174,12 +174,100 @@ const deleteConnection = (connection: EsConnection) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 现代化表格样式 */
+:deep(.arco-table) {
+  background: white;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+}
+
+:deep(.arco-table-th) {
+  background: linear-gradient(135deg, var(--gray-50), var(--gray-100)) !important;
+  color: var(--gray-700) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+}
+
+:deep(.arco-table-td) {
+  padding: 1rem !important;
+  border-color: var(--gray-200) !important;
+}
+
+:deep(.arco-table-tbody .arco-table-tr:hover) {
+  background: var(--gray-50) !important;
+  transform: scale(1.01);
+  transition: all 0.2s ease;
+}
+
+/* 现代化按钮组 */
+:deep(.arco-space-item .arco-btn) {
+  border-radius: var(--radius-lg) !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-btn-size-small) {
+  font-size: 0.875rem !important;
+}
+
+:deep(.arco-btn-status-danger) {
+  background: var(--error-color) !important;
+  border-color: var(--error-color) !important;
+  color: white !important;
+}
+
+:deep(.arco-btn-status-danger:hover) {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  transform: translateY(-1px);
+}
+
+/* 现代化标签 */
+:deep(.arco-tag) {
+  padding: 0.375rem 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.025em !important;
+}
+
+/* 现代化模态框 */
+:deep(.arco-modal) {
+  border-radius: var(--radius-xl) !important;
+}
+
+:deep(.arco-modal-header) {
+  background: linear-gradient(135deg, var(--gray-50), white) !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+}
+
+:deep(.arco-modal-title) {
+  font-weight: 600 !important;
+  color: var(--gray-800) !important;
+}
+
+:deep(.arco-form-item-label-text) {
+  font-weight: 600 !important;
+  color: var(--gray-700) !important;
 }
 </style>

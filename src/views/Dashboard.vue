@@ -118,13 +118,20 @@ const getHealthColor = (status: string) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  background: linear-gradient(135deg, var(--primary-color), var(--success-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .no-connection {
@@ -132,14 +139,83 @@ const getHealthColor = (status: string) => {
   justify-content: center;
   align-items: center;
   height: 400px;
+  background: linear-gradient(135deg, var(--gray-50), white);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--gray-300);
 }
 
 .cluster-health {
-  margin-top: 16px;
+  margin-top: 1rem;
 }
 
 .text-danger {
-  color: #f53f3f;
+  color: var(--error-color);
   font-weight: 600;
+}
+
+/* 现代化卡片样式 */
+:deep(.arco-card) {
+  background: linear-gradient(135deg, white, var(--gray-50));
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow) !important;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+:deep(.arco-card:hover) {
+  box-shadow: var(--shadow-lg) !important;
+  transform: translateY(-2px);
+}
+
+:deep(.arco-card-header) {
+  background: linear-gradient(135deg, var(--primary-color), var(--info-color)) !important;
+  color: white !important;
+  border-bottom: none !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+:deep(.arco-card-header-title) {
+  color: white !important;
+  font-weight: 700 !important;
+  font-size: 1.125rem !important;
+}
+
+:deep(.arco-card-body) {
+  padding: 1.5rem !important;
+}
+
+/* 现代化描述列表 */
+:deep(.arco-descriptions) {
+  background: white !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+:deep(.arco-descriptions-item-label) {
+  background: var(--gray-50) !important;
+  color: var(--gray-700) !important;
+  font-weight: 600 !important;
+  border-color: var(--gray-200) !important;
+}
+
+:deep(.arco-descriptions-item-content) {
+  color: var(--gray-800) !important;
+  border-color: var(--gray-200) !important;
+}
+
+/* 刷新按钮样式 */
+:deep(.arco-btn) {
+  border-radius: var(--radius-lg) !important;
+  font-weight: 600 !important;
+  padding: 0.625rem 1.25rem !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-btn:hover) {
+  transform: translateY(-1px) !important;
+}
+
+:deep(.arco-btn .arco-icon) {
+  margin-right: 0.5rem !important;
 }
 </style>

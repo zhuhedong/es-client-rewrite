@@ -275,13 +275,20 @@ const deleteIndex = (index: IndexInfo) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .no-connection {
@@ -289,15 +296,151 @@ const deleteIndex = (index: IndexInfo) => {
   justify-content: center;
   align-items: center;
   height: 400px;
+  background: linear-gradient(135deg, var(--gray-50), white);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--gray-300);
 }
 
 .mapping-content {
-  background: #f5f5f5;
-  padding: 16px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, var(--gray-900), var(--gray-800));
+  color: #e2e8f0;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
   max-height: 500px;
   overflow: auto;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  border: 1px solid var(--gray-700);
+  box-shadow: var(--shadow-md);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* 现代化表格样式 */
+:deep(.arco-table) {
+  background: white;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+}
+
+:deep(.arco-table-th) {
+  background: linear-gradient(135deg, var(--gray-50), var(--gray-100)) !important;
+  color: var(--gray-700) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+}
+
+:deep(.arco-table-td) {
+  padding: 1rem !important;
+  border-color: var(--gray-200) !important;
+}
+
+:deep(.arco-table-tbody .arco-table-tr:hover) {
+  background: var(--gray-50) !important;
+  transform: scale(1.01);
+  transition: all 0.2s ease;
+}
+
+/* 现代化按钮组 */
+:deep(.arco-space-item .arco-btn) {
+  border-radius: var(--radius-lg) !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-btn-size-small) {
+  font-size: 0.875rem !important;
+}
+
+:deep(.arco-btn-status-danger) {
+  background: var(--error-color) !important;
+  border-color: var(--error-color) !important;
+  color: white !important;
+}
+
+:deep(.arco-btn-status-danger:hover) {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  transform: translateY(-1px);
+}
+
+/* 现代化标签 */
+:deep(.arco-tag) {
+  padding: 0.375rem 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.025em !important;
+}
+
+/* 现代化链接 */
+:deep(.arco-link) {
+  font-weight: 600 !important;
+  color: var(--primary-color) !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-link:hover) {
+  color: var(--primary-hover) !important;
+  text-decoration: underline !important;
+}
+
+/* 现代化模态框 */
+:deep(.arco-modal) {
+  border-radius: var(--radius-xl) !important;
+}
+
+:deep(.arco-modal-header) {
+  background: linear-gradient(135deg, var(--gray-50), white) !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+}
+
+:deep(.arco-modal-title) {
+  font-weight: 600 !important;
+  color: var(--gray-800) !important;
+}
+
+:deep(.arco-form-item-label-text) {
+  font-weight: 600 !important;
+  color: var(--gray-700) !important;
+}
+
+:deep(.arco-textarea) {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+}
+
+/* 分页样式 */
+:deep(.arco-pagination) {
+  gap: 0.5rem !important;
+  margin-top: 1.5rem !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+  background: var(--gray-50) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--gray-200) !important;
+}
+
+:deep(.arco-pagination-item) {
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--gray-300) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.arco-pagination-item:hover) {
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  transform: translateY(-1px) !important;
+}
+
+:deep(.arco-pagination-item-active) {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: white !important;
 }
 </style>
