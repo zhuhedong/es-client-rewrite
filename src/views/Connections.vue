@@ -76,7 +76,17 @@
         </a-form-item>
         
         <a-form-item field="password" label="密码">
-          <a-input-password v-model="form.password" placeholder="密码（可选）" />
+          <a-input-password 
+            v-model="form.password" 
+            placeholder="密码（可选）" 
+            autocomplete="new-password"
+            :visibilityToggle="false"
+          />
+          <template #extra>
+            <div style="color: var(--warning-color); font-size: 0.75rem; margin-top: 0.25rem;">
+              🔒 密码将使用AES-256-GCM加密存储，主密钥安全保存在本地
+            </div>
+          </template>
         </a-form-item>
       </a-form>
     </a-modal>

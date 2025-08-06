@@ -4,6 +4,7 @@
 mod commands;
 mod es_client;
 mod types;
+mod crypto;
 
 use commands::*;
 use tauri::Wry;
@@ -13,8 +14,12 @@ async fn main() {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 
-    // Create connection manager
-    let connection_manager = ConnectionManager::new();
+    let context = tauri::generate_context!();
+    let config = context.config().clone();
+
+    // Create connection manager with config for persistent storage
+    let connection_manager = ConnectionManager::new(config)
+        .expect("Failed to initialize connection manager");
 
     tauri::Builder::<Wry>::new()
         .manage(connection_manager)
@@ -30,6 +35,6 @@ async fn main() {
             create_index,
             delete_index
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
