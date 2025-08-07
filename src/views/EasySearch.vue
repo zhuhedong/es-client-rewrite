@@ -260,11 +260,12 @@
       </a-row>
 
       <!-- 查询结果 -->
-      <div v-if="searchResult" class="results-section">
+      <div v-if="searchResult && searchResult.hits && searchResult.hits.length > 0" class="results-section">
         <a-card title="📋 查询结果" class="results-card">
           <template #extra>
             <span class="result-stats">
               共 {{ searchResult.total }} 条记录，耗时 {{ searchResult.took }}ms
+              (第 {{ currentPage }} 页，共 {{ Math.ceil(searchResult.total / queryBuilder.size) }} 页)
             </span>
           </template>
 
@@ -273,9 +274,10 @@
             :pagination="false"
             :scroll="{ x: '100%' }"
             size="small"
+            :loading="searchStore.loading"
           >
             <template #columns>
-              <a-table-column title="ID" data-index="_id" :width="150" />
+              <a-table-column title="ID" data-index="_id" :width="150" ellipsis />
               <a-table-column title="评分" data-index="_score" :width="80" />
               <a-table-column title="数据">
                 <template #cell="{ record }">
@@ -285,15 +287,32 @@
             </template>
           </a-table>
 
-          <div class="pagination-wrapper">
+          <div v-if="searchResult.total > queryBuilder.size" class="pagination-wrapper">
             <a-pagination
-              :current="Math.floor(queryBuilder.from / queryBuilder.size) + 1"
+              :current="currentPage"
               :page-size="queryBuilder.size"
               :total="searchResult.total"
               @change="onPageChange"
+              @page-size-change="onPageSizeChange"
               show-total
               show-jumper
+              show-page-size
+              :page-size-options="['10', '20', '50', '100']"
             />
+          </div>
+        </a-card>
+      </div>
+
+      <!-- 空结果状态 -->
+      <div v-else-if="searchResult && searchResult.hits && searchResult.hits.length === 0" class="results-section">
+        <a-card title="📋 查询结果" class="results-card">
+          <div class="no-results">
+            <a-empty description="没有找到匹配的数据">
+              <template #image>
+                📭
+              </template>
+              <a-button @click="resetQuery">重置查询条件</a-button>
+            </a-empty>
           </div>
         </a-card>
       </div>
@@ -356,6 +375,10 @@ const searchResult = computed(() => searchStore.searchResult)
 
 const canExecuteQuery = computed(() => {
   return queryBuilder.value.index && connectionStore.currentConnection
+})
+
+const currentPage = computed(() => {
+  return Math.floor(queryBuilder.value.from / queryBuilder.value.size) + 1
 })
 
 // 方法
@@ -477,9 +500,33 @@ const switchToAdvanced = () => {
   router.push('/search')
 }
 
-const onPageChange = (page: number, pageSize: number) => {
-  queryBuilder.value.from = (page - 1) * pageSize
+const onPageChange = (page: number) => {
+  console.log('Page change:', page, 'Size:', queryBuilder.value.size)
+  
+  // 确保页数有效
+  if (page < 1) page = 1
+  
+  queryBuilder.value.from = (page - 1) * queryBuilder.value.size
+  
+  console.log('New from:', queryBuilder.value.from)
+  executeQuery()
+}
+
+const onPageSizeChange = (pageSize: number) => {
+  console.log('Page size change:', pageSize)
+  
+  // 确保页大小有效
+  if (pageSize < 1) pageSize = 10
+  if (pageSize > 1000) pageSize = 1000
+  
+  const oldSize = queryBuilder.value.size
   queryBuilder.value.size = pageSize
+  
+  // 尽量保持当前查看的数据位置
+  const currentFirstRecord = queryBuilder.value.from + 1
+  queryBuilder.value.from = Math.floor((currentFirstRecord - 1) / pageSize) * pageSize
+  
+  console.log('Size changed from', oldSize, 'to', pageSize, 'new from:', queryBuilder.value.from)
   executeQuery()
 }
 
@@ -746,6 +793,11 @@ watch(
   padding: 0.25rem 0.75rem;
   background: var(--gray-100);
   border-radius: var(--radius);
+}
+
+.no-results {
+  text-align: center;
+  padding: 3rem 1rem;
 }
 
 .source-data {
