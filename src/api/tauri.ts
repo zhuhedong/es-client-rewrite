@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/tauri'
-import type { EsConnection, IndexInfo, SearchQuery, SearchResult, ClusterHealth } from '../types'
+import type { EsConnection, IndexInfo, SearchQuery, SearchResult, ClusterHealth, ExportRequest, ExportResult } from '../types'
 
 export class TauriApi {
   // 连接管理
@@ -44,5 +44,14 @@ export class TauriApi {
   // 数据查询
   static async searchDocuments(connectionId: string, query: SearchQuery): Promise<SearchResult> {
     return await invoke('search_documents', { connectionId, query })
+  }
+
+  // 数据导出
+  static async exportSearchResults(request: ExportRequest): Promise<ExportResult> {
+    return await invoke('export_search_results', { request })
+  }
+
+  static async getExportDirectory(): Promise<string> {
+    return await invoke('get_export_directory')
   }
 }

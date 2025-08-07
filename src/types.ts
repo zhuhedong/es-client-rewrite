@@ -46,3 +46,25 @@ export interface ClusterHealth {
   initializing_shards: number
   unassigned_shards: number
 }
+
+export enum ExportFormat {
+  JSON = 'JSON',
+  CSV = 'CSV',
+  Excel = 'Excel'
+}
+
+export interface ExportRequest {
+  connection_id: string
+  query: SearchQuery
+  format: ExportFormat
+  filename: string
+  selected_fields?: string[]
+  max_records?: number
+}
+
+export interface ExportResult {
+  success: boolean
+  file_path: string
+  total_records: number
+  message: string
+}

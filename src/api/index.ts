@@ -11,4 +11,4 @@ const isTauriApp = () => {
 export const Api = isTauriApp() ? TauriApi : WebApi
 
 // 导出类型
-export type { EsConnection, IndexInfo, SearchQuery, SearchResult, ClusterHealth } from '../types'
+export type { EsConnection, IndexInfo, SearchQuery, SearchResult, ClusterHealth, ExportRequest, ExportResult, ExportFormat } from '../types'

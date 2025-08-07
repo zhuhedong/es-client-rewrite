@@ -1,4 +1,4 @@
-import type { EsConnection, IndexInfo, SearchQuery, SearchResult, ClusterHealth } from '../types'
+import type { EsConnection, IndexInfo, SearchQuery, SearchResult, ClusterHealth, ExportRequest, ExportResult } from '../types'
 
 // Web版本的API实现 - 使用axios直接调用ES API
 export class WebApi {
@@ -171,6 +171,15 @@ export class WebApi {
       took: data.took || 0,
       timed_out: data.timed_out || false
     }
+  }
+
+  // 数据导出 - Web版本暂不支持
+  static async exportSearchResults(request: ExportRequest): Promise<ExportResult> {
+    throw new Error('Web版本暂不支持数据导出功能，请使用桌面客户端')
+  }
+
+  static async getExportDirectory(): Promise<string> {
+    throw new Error('Web版本暂不支持获取导出目录，请使用桌面客户端')
   }
 
   // 工具方法

@@ -1,4 +1,5 @@
 use crate::es_client::EsClient;
+use crate::export::ExportService;
 use crate::types::*;
 use crate::crypto::{CryptoManager, SecureConnectionData};
 use serde_json::Value;
@@ -328,4 +329,61 @@ pub async fn delete_index(
         .delete_index(&index)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn export_search_results(
+    manager: State<'_, ConnectionManager>,
+    request: ExportRequest,
+) -> Result<ExportResult, String> {
+    let client = manager
+        .get_client(&request.connection_id)
+        .ok_or("Connection not found")?;
+
+    // 执行搜索获取所有数据
+    let mut all_data = Vec::new();
+    let batch_size = 1000;
+    let max_records = request.max_records.unwrap_or(10000);
+    let mut current_from = 0;
+
+    while current_from < max_records {
+        let remaining = max_records - current_from;
+        let current_size = std::cmp::min(batch_size, remaining);
+
+        let mut search_query = request.query.clone();
+        search_query.from = Some(current_from);
+        search_query.size = Some(current_size);
+
+        match client.search_documents(search_query).await {
+            Ok(result) => {
+                if result.hits.is_empty() {
+                    break;
+                }
+                all_data.extend(result.hits);
+                current_from += current_size;
+                
+                // 如果这批返回的数据少于请求的数量，说明已经没有更多数据了
+                if result.hits.len() < current_size as usize {
+                    break;
+                }
+            }
+            Err(e) => return Err(format!("搜索失败: {}", e)),
+        }
+    }
+
+    // 使用导出服务导出数据
+    let export_service = ExportService::new();
+    export_service
+        .export_data(request, all_data)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_export_directory() -> Result<String, String> {
+    let export_service = ExportService::new();
+    match export_service.get_export_directory() {
+        Ok(path) => Ok(path.to_string_lossy().to_string()),
+        Err(e) => Err(e.to_string()),
+    }
 }

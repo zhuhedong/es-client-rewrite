@@ -13,6 +13,7 @@ export const useSearchStore = defineStore('search', () => {
     from: 0,
     size: 10
   })
+  const lastQuery = ref<SearchQuery | null>(null)
 
   // 执行搜索
   const executeSearch = async (connectionId: string, searchQuery: SearchQuery) => {
@@ -20,6 +21,7 @@ export const useSearchStore = defineStore('search', () => {
 
     try {
       loading.value = true
+      lastQuery.value = { ...searchQuery }
       searchResult.value = await Api.searchDocuments(connectionId, searchQuery)
     } catch (error) {
       console.error('Search failed:', error)
@@ -43,6 +45,7 @@ export const useSearchStore = defineStore('search', () => {
     searchResult,
     loading,
     query,
+    lastQuery,
     executeSearch,
     resetSearchResult,
     updateQuery

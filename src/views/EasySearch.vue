@@ -303,6 +303,39 @@
                     </template>
                   </a-dropdown>
                 </div>
+                
+                <div class="export-controls">
+                  <a-space>
+                    <a-dropdown trigger="click">
+                      <a-button size="small" type="primary" :disabled="!searchResult || searchResult.hits.length === 0">
+                        <template #icon>
+                          <icon-download />
+                        </template>
+                        导出数据
+                      </a-button>
+                      <template #content>
+                        <a-doption @click="showExportDialog(ExportFormat.JSON)">
+                          <template #icon>
+                            <icon-code />
+                          </template>
+                          导出为 JSON
+                        </a-doption>
+                        <a-doption @click="showExportDialog(ExportFormat.CSV)">
+                          <template #icon>
+                            <icon-file />
+                          </template>
+                          导出为 CSV
+                        </a-doption>
+                        <a-doption @click="showExportDialog(ExportFormat.Excel)">
+                          <template #icon>
+                            <icon-file />
+                          </template>
+                          导出为 Excel
+                        </a-doption>
+                      </template>
+                    </a-dropdown>
+                  </a-space>
+                </div>
               </div>
 
               <a-table
@@ -552,6 +585,67 @@
         </a-card>
       </div>
     </a-modal>
+    
+    <!-- 导出对话框 -->
+    <a-modal
+      v-model:visible="exportDialogVisible"
+      title="导出数据"
+      width="500px"
+      :confirmLoading="exportLoading"
+      @ok="handleExport"
+    >
+      <a-form :model="{ exportFormat, exportFilename, exportMaxRecords }" layout="vertical">
+        <a-form-item label="导出格式">
+          <a-select v-model="exportFormat" :disabled="exportLoading">
+            <a-option value="JSON">JSON 格式</a-option>
+            <a-option value="CSV">CSV 格式</a-option>
+            <a-option value="Excel">Excel 格式</a-option>
+          </a-select>
+        </a-form-item>
+        
+        <a-form-item label="文件名" required>
+          <a-input 
+            v-model="exportFilename" 
+            placeholder="请输入文件名"
+            :disabled="exportLoading"
+          />
+        </a-form-item>
+        
+        <a-form-item label="最大导出记录数">
+          <a-input-number 
+            v-model="exportMaxRecords" 
+            :min="1" 
+            :max="50000" 
+            :disabled="exportLoading"
+            style="width: 100%"
+          />
+          <div class="form-help">建议不超过10000条，避免文件过大</div>
+        </a-form-item>
+        
+        <a-form-item label="导出字段">
+          <div class="field-selection">
+            <div v-if="selectedFields.length > 0" class="selected-fields">
+              <a-tag v-for="field in selectedFields.slice(0, 10)" :key="field" size="small">
+                {{ field }}
+              </a-tag>
+              <span v-if="selectedFields.length > 10" class="more-fields">
+                +{{ selectedFields.length - 10 }} 个字段
+              </span>
+            </div>
+            <div v-else class="no-fields">
+              将导出所有可用字段
+            </div>
+          </div>
+        </a-form-item>
+        
+        <a-alert 
+          v-if="searchResult"
+          :message="`当前搜索结果共 ${searchResult.total} 条记录，将导出前 ${Math.min(exportMaxRecords, searchResult.total)} 条`"
+          type="info"
+          show-icon
+        />
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -570,9 +664,13 @@ import {
   IconLink,
   IconDown,
   IconCopy,
-  IconClose
+  IconClose,
+  IconDownload,
+  IconFile
 } from '@arco-design/web-vue/es/icon'
 import { Message, Modal } from '@arco-design/web-vue'
+import { invoke } from '@tauri-apps/api/tauri'
+import { ExportFormat, type ExportRequest, type ExportResult } from '../types'
 
 // 类型定义
 interface QueryCondition {
@@ -600,6 +698,13 @@ const quickSearchText = ref('')
 const selectedFields = ref<string[]>([])
 const documentDetailVisible = ref(false)
 const selectedDocument = ref<any>(null)
+
+// 导出相关状态
+const exportDialogVisible = ref(false)
+const exportFormat = ref<ExportFormat>(ExportFormat.JSON)
+const exportFilename = ref('')
+const exportMaxRecords = ref(1000)
+const exportLoading = ref(false)
 
 // 查询构建器状态
 const queryBuilder = ref<QueryBuilder>({
@@ -982,6 +1087,70 @@ const getFieldType = (field: string): string => {
   return fieldInfo?.type || 'unknown'
 }
 
+// 导出功能
+const showExportDialog = (format: ExportFormat) => {
+  if (!searchResult.value || searchResult.value.hits.length === 0) {
+    Message.warning('没有可导出的数据')
+    return
+  }
+  
+  exportFormat.value = format
+  exportFilename.value = `search_results_${Date.now()}.${format.toLowerCase()}`
+  exportDialogVisible.value = true
+}
+
+const handleExport = async () => {
+  if (!connectionStore.currentConnection) {
+    Message.error('请先选择连接')
+    return
+  }
+
+  if (!exportFilename.value.trim()) {
+    Message.error('请输入文件名')
+    return
+  }
+
+  exportLoading.value = true
+  
+  try {
+    const exportRequest: ExportRequest = {
+      connection_id: connectionStore.currentConnection.id,
+      query: {
+        index: queryBuilder.value.index,
+        query: searchStore.lastQuery?.query || {},
+        size: exportMaxRecords.value,
+        from: 0,
+        sort: searchStore.lastQuery?.sort
+      },
+      format: exportFormat.value,
+      filename: exportFilename.value,
+      selected_fields: selectedFields.value.length > 0 ? selectedFields.value : undefined,
+      max_records: exportMaxRecords.value
+    }
+
+    const result: ExportResult = await invoke('export_search_results', { request: exportRequest })
+    
+    if (result.success) {
+      Message.success(result.message)
+      exportDialogVisible.value = false
+      
+      // 询问是否打开文件夹
+      Modal.info({
+        title: '导出成功',
+        content: `文件已保存到: ${result.file_path}`,
+        okText: '确定'
+      })
+    } else {
+      Message.error('导出失败')
+    }
+  } catch (error) {
+    console.error('Export error:', error)
+    Message.error(`导出失败: ${error}`)
+  } finally {
+    exportLoading.value = false
+  }
+}
+
 // 生命周期
 onMounted(() => {
   if (connectionStore.currentConnection) {
@@ -1045,6 +1214,40 @@ const needsPerformanceWarning = computed(() => {
 .easy-search-page {
   height: 100%;
   padding: 0;
+}
+
+/* 导出相关样式 */
+.field-selection {
+  min-height: 60px;
+  padding: 8px;
+  background: var(--color-fill-2);
+  border-radius: 4px;
+}
+
+.selected-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.more-fields {
+  font-size: 12px;
+  color: var(--color-text-3);
+  margin-left: 4px;
+}
+
+.no-fields {
+  color: var(--color-text-3);
+  font-style: italic;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.form-help {
+  font-size: 12px;
+  color: var(--color-text-3);
+  margin-top: 4px;
 }
 
 .page-header {

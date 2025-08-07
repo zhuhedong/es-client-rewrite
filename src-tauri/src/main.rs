@@ -5,6 +5,7 @@ mod commands;
 mod es_client;
 mod types;
 mod crypto;
+mod export;
 
 use commands::*;
 use tauri::Wry;
@@ -33,7 +34,9 @@ async fn main() {
             search_documents,
             get_index_mapping,
             create_index,
-            delete_index
+            delete_index,
+            export_search_results,
+            get_export_directory
         ])
         .run(context)
         .expect("error while running tauri application");

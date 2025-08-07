@@ -54,3 +54,28 @@ pub struct ClusterHealth {
     pub initializing_shards: u32,
     pub unassigned_shards: u32,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ExportFormat {
+    JSON,
+    CSV,
+    Excel,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportRequest {
+    pub connection_id: String,
+    pub query: SearchQuery,
+    pub format: ExportFormat,
+    pub filename: String,
+    pub selected_fields: Option<Vec<String>>,
+    pub max_records: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportResult {
+    pub success: bool,
+    pub file_path: String,
+    pub total_records: u64,
+    pub message: String,
+}
