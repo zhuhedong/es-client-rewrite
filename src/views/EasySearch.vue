@@ -308,7 +308,7 @@
               <a-table
                 :data="searchResult.hits"
                 :pagination="false"
-                :scroll="{ x: Math.max(800, selectedFields.length * 150) }"
+                :scroll="{ x: Math.max(800, selectedFields.length * 150 + 300) }"
                 size="small"
                 :loading="searchStore.loading"
                 row-key="_id"
@@ -331,7 +331,7 @@
 
                   <!-- 动态字段列 -->
                   <a-table-column
-                    v-for="field in selectedFields.slice(0, 8)"
+                    v-for="field in selectedFields"
                     :key="field"
                     :title="field"
                     :width="150"
@@ -379,22 +379,22 @@
 
                       <div class="card-fields">
                         <div
-                          v-for="field in resultFields.slice(0, 6)"
-                          :key="field.name"
+                          v-for="field in selectedFields.slice(0, 8)"
+                          :key="field"
                           class="card-field"
                         >
                           <div class="field-label">
-                            <span class="field-name">{{ field.name }}</span>
-                            <a-tag size="small" :color="getFieldTypeColor(field.type)">
-                              {{ field.type }}
+                            <span class="field-name">{{ getFieldDisplayName(field) }}</span>
+                            <a-tag size="small" :color="getFieldTypeColor(getFieldType(field))">
+                              {{ getFieldType(field) }}
                             </a-tag>
                           </div>
-                          <div class="field-value">{{ getFieldValue(hit, field.name) }}</div>
+                          <div class="field-value">{{ getFieldValue(hit, field) }}</div>
                         </div>
                         
-                        <div v-if="resultFields.length > 6" class="more-fields">
-                          <a-button size="mini" type="text" @click="viewDocumentDetail(hit)">
-                            查看全部 {{ resultFields.length }} 个字段...
+                        <div v-if="selectedFields.length > 8" class="more-fields">
+                          <a-button size="small" type="text" @click="viewDocumentDetail(hit)">
+                            查看全部 {{ selectedFields.length }} 个字段...
                           </a-button>
                         </div>
                       </div>
@@ -870,6 +870,18 @@ const getValueType = (value: any): string => {
   return 'unknown'
 }
 
+// 获取字段显示名称（用于卡片视图）
+const getFieldDisplayName = (field: string): string => {
+  return field
+}
+
+// 获取字段类型（用于卡片视图）
+const getFieldType = (field: string): string => {
+  // 从resultFields中查找对应字段的类型
+  const fieldInfo = resultFields.value.find(f => f.name === field)
+  return fieldInfo?.type || 'unknown'
+}
+
 // 生命周期
 onMounted(() => {
   if (connectionStore.currentConnection) {
@@ -892,8 +904,8 @@ watch(
   resultFields,
   (newFields) => {
     if (newFields.length > 0 && selectedFields.value.length === 0) {
-      // 默认选择前8个字段
-      selectedFields.value = newFields.slice(0, 8).map(f => f.name)
+      // 默认选择所有字段
+      selectedFields.value = newFields.map(f => f.name)
     }
   },
   { immediate: true }
