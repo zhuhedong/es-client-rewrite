@@ -152,13 +152,15 @@
               <!-- 分页 -->
               <div class="pagination-wrapper">
                 <a-pagination 
-                  :current="Math.floor((queryForm.from || 0) / (queryForm.size || 10)) + 1"
+                  :current="currentPage"
                   :page-size="queryForm.size || 10"
                   :total="searchResult.total"
                   @change="onPageChange"
+                  @page-size-change="onPageSizeChange"
                   show-total
                   show-jumper
                   show-page-size
+                  :page-size-options="['10', '20', '50', '100']"
                 />
               </div>
             </div>
@@ -191,6 +193,11 @@ const queryText = ref('{\n  "match_all": {}\n}')
 const sortText = ref('')
 
 const searchResult = computed(() => searchStore.searchResult)
+
+// 计算当前页数
+const currentPage = computed(() => {
+  return Math.floor((queryForm.value.from || 0) / (queryForm.value.size || 10)) + 1
+})
 
 // 查询模板
 const templates = {
@@ -280,9 +287,34 @@ const setTemplate = (templateName: keyof typeof templates) => {
   queryText.value = templates[templateName]
 }
 
-const onPageChange = (page: number, pageSize: number) => {
-  queryForm.value.from = (page - 1) * pageSize
+const onPageChange = (page: number) => {
+  console.log('Page change:', page, 'Size:', queryForm.value.size)
+  
+  // 确保页数有效
+  if (page < 1) page = 1
+  
+  queryForm.value.from = (page - 1) * (queryForm.value.size || 10)
+  
+  console.log('New from:', queryForm.value.from)
+  executeSearch()
+}
+
+const onPageSizeChange = (pageSize: number) => {
+  console.log('Page size change:', pageSize)
+  
+  // 确保页大小有效
+  if (pageSize < 1) pageSize = 10
+  if (pageSize > 10000) pageSize = 10000
+  
+  const currentPage = Math.floor((queryForm.value.from || 0) / (queryForm.value.size || 10)) + 1
+  const oldSize = queryForm.value.size || 10
   queryForm.value.size = pageSize
+  
+  // 尽量保持当前查看的数据位置
+  const currentFirstRecord = queryForm.value.from + 1
+  queryForm.value.from = Math.floor((currentFirstRecord - 1) / pageSize) * pageSize
+  
+  console.log('Size changed from', oldSize, 'to', pageSize, 'new from:', queryForm.value.from)
   executeSearch()
 }
 </script>

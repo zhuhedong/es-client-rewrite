@@ -444,7 +444,7 @@
     <!-- 文档详情模态框 -->
     <a-modal
       v-model:visible="documentDetailVisible"
-      :title="`📄 文档详情 - ${selectedDocument?._id || ''}`"
+      :title="`📄 文档详情 - ${selectedDocument?._id || 'Unknown'}`"
       width="90%"
       :footer="false"
       :mask-closable="false"
@@ -455,6 +455,9 @@
         <!-- 操作按钮 -->
         <div class="detail-actions">
           <a-space>
+            <a-tag color="blue" size="small">
+              字段数: {{ Object.keys(selectedDocument._source || {}).length }}
+            </a-tag>
             <a-button @click="copyDocumentToClipboard(selectedDocument)" type="outline">
               <template #icon>
                 <icon-copy />
@@ -493,23 +496,31 @@
           <a-tabs default-active-key="structured">
             <a-tab-pane key="structured" title="🏗️ 结构化视图">
               <div class="structured-content">
-                <div
-                  v-for="(value, key) in selectedDocument._source"
-                  :key="key"
-                  class="field-item"
-                >
-                  <div class="field-header">
-                    <span class="field-key">{{ key }}</span>
-                    <a-tag size="small" :color="getFieldTypeColor(getValueType(value))">
-                      {{ getValueType(value) }}
-                    </a-tag>
-                  </div>
-                  <div class="field-content">
-                    <div v-if="typeof value === 'object'" class="object-value">
-                      <pre>{{ JSON.stringify(value, null, 2) }}</pre>
+                <div v-if="!selectedDocument || !selectedDocument._source || Object.keys(selectedDocument._source).length === 0" class="no-data">
+                  <a-empty description="无文档数据" />
+                </div>
+                <div v-else>
+                  <div
+                    v-for="(value, key) in selectedDocument._source"
+                    :key="key"
+                    class="field-item"
+                  >
+                    <div class="field-header">
+                      <span class="field-key">{{ key }}</span>
+                      <a-tag size="small" :color="getFieldTypeColor(getValueType(value))">
+                        {{ getValueType(value) }}
+                      </a-tag>
                     </div>
-                    <div v-else class="simple-value">
-                      {{ value }}
+                    <div class="field-content">
+                      <div v-if="value === null || value === undefined" class="null-value">
+                        <em>null</em>
+                      </div>
+                      <div v-else-if="typeof value === 'object'" class="object-value">
+                        <pre>{{ JSON.stringify(value, null, 2) }}</pre>
+                      </div>
+                      <div v-else class="simple-value">
+                        {{ value }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -817,6 +828,10 @@ const getFieldTypeColor = (type: string) => {
 
 // 查看文档详情
 const viewDocumentDetail = (document: any) => {
+  console.log('ViewDocumentDetail called with:', document)
+  console.log('Document._source:', document._source)
+  console.log('Document keys:', Object.keys(document))
+  
   selectedDocument.value = document
   documentDetailVisible.value = true
 }
@@ -1323,9 +1338,13 @@ watch(
   max-height: 90vh;
 }
 
+.document-detail-modal :deep(.arco-modal) {
+  max-height: 90vh;
+}
+
 .document-detail-modal :deep(.arco-modal-body) {
-  max-height: 80vh;
-  overflow-y: auto;
+  max-height: 75vh;
+  overflow: hidden;
   padding: 0;
 }
 
@@ -1334,9 +1353,13 @@ watch(
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
+  height: 100%;
+  max-height: 75vh;
+  overflow: hidden;
 }
 
 .detail-actions {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   padding-bottom: 1rem;
@@ -1346,10 +1369,29 @@ watch(
 .detail-section {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.detail-section .arco-card-body {
+.detail-section :deep(.arco-card-body) {
   padding: 1rem;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-section :deep(.arco-tabs) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-section :deep(.arco-tabs-content) {
+  flex: 1;
+  overflow: hidden;
 }
 
 /* 结构化内容样式 */
@@ -1357,8 +1399,19 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-height: 400px;
+  max-height: 60vh;
   overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border: 2px dashed var(--gray-300);
 }
 
 .field-item {
@@ -1407,14 +1460,35 @@ watch(
   margin: 0;
   padding: 1rem;
   overflow: auto;
-  max-height: 200px;
+  max-height: 300px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-600) var(--gray-800);
+}
+
+.object-value pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.object-value pre::-webkit-scrollbar-track {
+  background: var(--gray-800);
+}
+
+.object-value pre::-webkit-scrollbar-thumb {
+  background: var(--gray-600);
+  border-radius: 4px;
+}
+
+.object-value pre::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
 }
 
 .json-viewer {
   background: var(--gray-900);
   border-radius: var(--radius);
   overflow: hidden;
-  max-height: 500px;
+  max-height: 60vh;
+  border: 1px solid var(--gray-700);
 }
 
 .json-viewer pre {
@@ -1425,6 +1499,50 @@ watch(
   margin: 0;
   padding: 1rem;
   overflow: auto;
+  min-height: 200px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-600) var(--gray-800);
+}
+
+.json-viewer pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.json-viewer pre::-webkit-scrollbar-track {
+  background: var(--gray-800);
+}
+
+.json-viewer pre::-webkit-scrollbar-thumb {
+  background: var(--gray-600);
+  border-radius: 4px;
+}
+
+.json-viewer pre::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+.structured-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.structured-content::-webkit-scrollbar-track {
+  background: var(--gray-100);
+}
+
+.structured-content::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 4px;
+}
+
+.structured-content::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+.null-value {
+  color: var(--gray-500);
+  font-style: italic;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 1200px) {
