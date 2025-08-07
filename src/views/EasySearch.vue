@@ -440,6 +440,97 @@
         </a-card>
       </div>
     </div>
+
+    <!-- 文档详情模态框 -->
+    <a-modal
+      v-model:visible="documentDetailVisible"
+      :title="`📄 文档详情 - ${selectedDocument?._id || ''}`"
+      width="90%"
+      :footer="false"
+      :mask-closable="false"
+      class="document-detail-modal"
+      @cancel="closeDocumentDetail"
+    >
+      <div v-if="selectedDocument" class="document-detail-content">
+        <!-- 操作按钮 -->
+        <div class="detail-actions">
+          <a-space>
+            <a-button @click="copyDocumentToClipboard(selectedDocument)" type="outline">
+              <template #icon>
+                <icon-copy />
+              </template>
+              复制文档
+            </a-button>
+            <a-button @click="copyDocumentToClipboard(selectedDocument._source)" type="outline">
+              <template #icon>
+                <icon-copy />
+              </template>
+              复制内容
+            </a-button>
+            <a-button @click="closeDocumentDetail" type="primary">
+              <template #icon>
+                <icon-close />
+              </template>
+              关闭
+            </a-button>
+          </a-space>
+        </div>
+
+        <!-- 基础信息卡片 -->
+        <a-card title="📋 基础信息" class="detail-section">
+          <a-descriptions :data="[
+            { label: 'ID', value: selectedDocument._id },
+            { label: '索引', value: selectedDocument._index },
+            { label: '类型', value: selectedDocument._type || 'N/A' },
+            { label: '评分', value: selectedDocument._score?.toFixed(3) || 'N/A' },
+            { label: '版本', value: selectedDocument._version || 'N/A' }
+          ]" :column="2" />
+        </a-card>
+
+        <!-- 文档内容 -->
+        <a-card title="📝 文档内容" class="detail-section">
+          <!-- 结构化视图 -->
+          <a-tabs default-active-key="structured">
+            <a-tab-pane key="structured" title="🏗️ 结构化视图">
+              <div class="structured-content">
+                <div
+                  v-for="(value, key) in selectedDocument._source"
+                  :key="key"
+                  class="field-item"
+                >
+                  <div class="field-header">
+                    <span class="field-key">{{ key }}</span>
+                    <a-tag size="small" :color="getFieldTypeColor(getValueType(value))">
+                      {{ getValueType(value) }}
+                    </a-tag>
+                  </div>
+                  <div class="field-content">
+                    <div v-if="typeof value === 'object'" class="object-value">
+                      <pre>{{ JSON.stringify(value, null, 2) }}</pre>
+                    </div>
+                    <div v-else class="simple-value">
+                      {{ value }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a-tab-pane>
+
+            <a-tab-pane key="json" title="🔧 JSON视图">
+              <div class="json-viewer">
+                <pre>{{ JSON.stringify(selectedDocument, null, 2) }}</pre>
+              </div>
+            </a-tab-pane>
+
+            <a-tab-pane key="source" title="📄 仅内容">
+              <div class="json-viewer">
+                <pre>{{ JSON.stringify(selectedDocument._source, null, 2) }}</pre>
+              </div>
+            </a-tab-pane>
+          </a-tabs>
+        </a-card>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -456,9 +547,11 @@ import {
   IconDelete,
   IconRefresh,
   IconLink,
-  IconDown
+  IconDown,
+  IconCopy,
+  IconClose
 } from '@arco-design/web-vue/es/icon'
-import { Message } from '@arco-design/web-vue'
+import { Message, Modal } from '@arco-design/web-vue'
 
 // 类型定义
 interface QueryCondition {
@@ -484,6 +577,8 @@ const searchStore = useSearchStore()
 const currentStep = ref(0)
 const quickSearchText = ref('')
 const selectedFields = ref<string[]>([])
+const documentDetailVisible = ref(false)
+const selectedDocument = ref<any>(null)
 
 // 查询构建器状态
 const queryBuilder = ref<QueryBuilder>({
@@ -713,6 +808,8 @@ const getFieldTypeColor = (type: string) => {
     boolean: 'orange',
     date: 'purple',
     object: 'red',
+    array: 'cyan',
+    null: 'gray',
     unknown: 'gray'
   }
   return colorMap[type] || 'gray'
@@ -720,17 +817,57 @@ const getFieldTypeColor = (type: string) => {
 
 // 查看文档详情
 const viewDocumentDetail = (document: any) => {
-  // 使用Arco Design的Modal组件显示详情
-  const modal = {
-    title: `文档详情 - ${document._id}`,
-    content: JSON.stringify(document, null, 2),
-    width: '80%',
-    okText: '关闭'
+  selectedDocument.value = document
+  documentDetailVisible.value = true
+}
+
+// 关闭文档详情
+const closeDocumentDetail = () => {
+  documentDetailVisible.value = false
+  selectedDocument.value = null
+}
+
+// 复制文档内容到剪贴板
+const copyDocumentToClipboard = async (document: any) => {
+  try {
+    const text = JSON.stringify(document, null, 2)
+    await navigator.clipboard.writeText(text)
+    Message.success('文档内容已复制到剪贴板')
+  } catch (error) {
+    console.error('Failed to copy to clipboard:', error)
+    Message.error('复制失败，请手动复制')
   }
+}
+
+// 格式化文档显示
+const formatDocumentForDisplay = (document: any) => {
+  if (!document) return {}
   
-  // 这里可以调用Modal.info或其他方式显示详情
-  console.log('Document detail:', document)
-  Message.info('文档详情功能待完善')
+  return {
+    基础信息: {
+      ID: document._id,
+      索引: document._index,
+      类型: document._type || 'N/A',
+      评分: document._score?.toFixed(3) || 'N/A',
+      版本: document._version || 'N/A'
+    },
+    文档内容: document._source || {}
+  }
+}
+
+// 获取值的类型
+const getValueType = (value: any): string => {
+  if (value === null || value === undefined) return 'null'
+  if (typeof value === 'string') {
+    // 检查是否是日期格式
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return 'date'
+    return 'text'
+  }
+  if (typeof value === 'number') return 'number'
+  if (typeof value === 'boolean') return 'boolean'
+  if (Array.isArray(value)) return 'array'
+  if (typeof value === 'object') return 'object'
+  return 'unknown'
 }
 
 // 生命周期
@@ -1166,6 +1303,115 @@ watch(
   font-size: 0.75rem;
   line-height: 1.4;
   max-height: 500px;
+  overflow: auto;
+}
+
+/* 文档详情模态框样式 */
+.document-detail-modal {
+  max-height: 90vh;
+}
+
+.document-detail-modal :deep(.arco-modal-body) {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.document-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.detail-section {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.detail-section .arco-card-body {
+  padding: 1rem;
+}
+
+/* 结构化内容样式 */
+.structured-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.field-item {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.field-key {
+  font-weight: 600;
+  color: var(--gray-800);
+  font-size: 0.875rem;
+}
+
+.field-content {
+  padding: 1rem;
+}
+
+.simple-value {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.object-value {
+  background: var(--gray-900);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.object-value pre {
+  color: var(--gray-100);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  max-height: 200px;
+}
+
+.json-viewer {
+  background: var(--gray-900);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-height: 500px;
+}
+
+.json-viewer pre {
+  color: var(--gray-100);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 1rem;
   overflow: auto;
 }
 
