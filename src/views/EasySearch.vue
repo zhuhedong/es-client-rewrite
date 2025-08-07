@@ -269,23 +269,146 @@
             </span>
           </template>
 
-          <a-table
-            :data="searchResult.hits"
-            :pagination="false"
-            :scroll="{ x: '100%' }"
-            size="small"
-            :loading="searchStore.loading"
-          >
-            <template #columns>
-              <a-table-column title="ID" data-index="_id" :width="150" ellipsis />
-              <a-table-column title="评分" data-index="_score" :width="80" />
-              <a-table-column title="数据">
-                <template #cell="{ record }">
-                  <pre class="source-data">{{ JSON.stringify(record._source, null, 2) }}</pre>
+          <a-tabs default-active-key="table">
+            <!-- 表格视图 -->
+            <a-tab-pane key="table" title="📊 表格视图">
+              <div class="table-controls">
+                <div class="fields-info">
+                  <a-tag color="blue">共 {{ resultFields.length }} 个字段</a-tag>
+                  <a-dropdown trigger="click">
+                    <a-button size="small" type="outline">
+                      字段管理
+                      <template #icon>
+                        <icon-down />
+                      </template>
+                    </a-button>
+                    <template #content>
+                      <div class="field-selector">
+                        <a-checkbox-group v-model="selectedFields">
+                          <div class="field-list">
+                            <a-checkbox
+                              v-for="field in resultFields"
+                              :key="field.name"
+                              :value="field.name"
+                              class="field-checkbox"
+                            >
+                              <span class="field-name">{{ field.name }}</span>
+                              <a-tag size="small" :color="getFieldTypeColor(field.type)">
+                                {{ field.type }}
+                              </a-tag>
+                            </a-checkbox>
+                          </div>
+                        </a-checkbox-group>
+                      </div>
+                    </template>
+                  </a-dropdown>
+                </div>
+              </div>
+
+              <a-table
+                :data="searchResult.hits"
+                :pagination="false"
+                :scroll="{ x: Math.max(800, selectedFields.length * 150) }"
+                size="small"
+                :loading="searchStore.loading"
+                row-key="_id"
+              >
+                <template #columns>
+                  <!-- 基础信息列 -->
+                  <a-table-column title="ID" data-index="_id" :width="120" fixed="left" ellipsis>
+                    <template #cell="{ record }">
+                      <a-tooltip :content="record._id">
+                        <span class="id-text">{{ record._id }}</span>
+                      </a-tooltip>
+                    </template>
+                  </a-table-column>
+                  
+                  <a-table-column title="评分" data-index="_score" :width="80" fixed="left">
+                    <template #cell="{ record }">
+                      <a-tag color="orange" size="small">{{ record._score?.toFixed(3) || 'N/A' }}</a-tag>
+                    </template>
+                  </a-table-column>
+
+                  <!-- 动态字段列 -->
+                  <a-table-column
+                    v-for="field in selectedFields.slice(0, 8)"
+                    :key="field"
+                    :title="field"
+                    :width="150"
+                    ellipsis
+                  >
+                    <template #cell="{ record }">
+                      <div class="field-cell">
+                        <span class="field-value">{{ getFieldValue(record, field) }}</span>
+                      </div>
+                    </template>
+                  </a-table-column>
+
+                  <!-- 操作列 -->
+                  <a-table-column title="操作" :width="100" fixed="right">
+                    <template #cell="{ record }">
+                      <a-button size="mini" @click="viewDocumentDetail(record)">
+                        详情
+                      </a-button>
+                    </template>
+                  </a-table-column>
                 </template>
-              </a-table-column>
-            </template>
-          </a-table>
+              </a-table>
+            </a-tab-pane>
+
+            <!-- 卡片视图 -->
+            <a-tab-pane key="card" title="📇 卡片视图">
+              <div class="cards-container">
+                <a-row :gutter="[16, 16]">
+                  <a-col
+                    v-for="(hit, index) in searchResult.hits"
+                    :key="hit._id"
+                    :xs="24" :sm="12" :md="8" :lg="6"
+                  >
+                    <a-card
+                      :title="`文档 #${queryBuilder.from + index + 1}`"
+                      class="result-card"
+                      size="small"
+                      hoverable
+                    >
+                      <template #extra>
+                        <a-tag color="orange" size="small">
+                          {{ hit._score?.toFixed(3) || 'N/A' }}
+                        </a-tag>
+                      </template>
+
+                      <div class="card-fields">
+                        <div
+                          v-for="field in resultFields.slice(0, 6)"
+                          :key="field.name"
+                          class="card-field"
+                        >
+                          <div class="field-label">
+                            <span class="field-name">{{ field.name }}</span>
+                            <a-tag size="small" :color="getFieldTypeColor(field.type)">
+                              {{ field.type }}
+                            </a-tag>
+                          </div>
+                          <div class="field-value">{{ getFieldValue(hit, field.name) }}</div>
+                        </div>
+                        
+                        <div v-if="resultFields.length > 6" class="more-fields">
+                          <a-button size="mini" type="text" @click="viewDocumentDetail(hit)">
+                            查看全部 {{ resultFields.length }} 个字段...
+                          </a-button>
+                        </div>
+                      </div>
+                    </a-card>
+                  </a-col>
+                </a-row>
+              </div>
+            </a-tab-pane>
+
+            <!-- 原始JSON视图 -->
+            <a-tab-pane key="json" title="🔧 原始数据">
+              <pre class="json-result">{{ JSON.stringify(searchResult, null, 2) }}</pre>
+            </a-tab-pane>
+          </a-tabs>
 
           <div v-if="searchResult.total > queryBuilder.size" class="pagination-wrapper">
             <a-pagination
@@ -332,7 +455,8 @@ import {
   IconPlus,
   IconDelete,
   IconRefresh,
-  IconLink
+  IconLink,
+  IconDown
 } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
 
@@ -359,6 +483,7 @@ const searchStore = useSearchStore()
 // 响应式数据
 const currentStep = ref(0)
 const quickSearchText = ref('')
+const selectedFields = ref<string[]>([])
 
 // 查询构建器状态
 const queryBuilder = ref<QueryBuilder>({
@@ -380,6 +505,51 @@ const canExecuteQuery = computed(() => {
 const currentPage = computed(() => {
   return Math.floor(queryBuilder.value.from / queryBuilder.value.size) + 1
 })
+
+// 自动提取结果字段
+const resultFields = computed(() => {
+  if (!searchResult.value?.hits?.length) return []
+  
+  const fieldsSet = new Set<string>()
+  const fieldTypes: Record<string, string> = {}
+  
+  // 遍历前几条记录来提取字段信息
+  searchResult.value.hits.slice(0, 5).forEach(hit => {
+    if (hit._source) {
+      Object.keys(hit._source).forEach(key => {
+        fieldsSet.add(key)
+        // 简单的类型判断
+        const value = hit._source[key]
+        if (fieldTypes[key] === undefined) {
+          if (typeof value === 'string') {
+            fieldTypes[key] = 'text'
+          } else if (typeof value === 'number') {
+            fieldTypes[key] = 'number'
+          } else if (typeof value === 'boolean') {
+            fieldTypes[key] = 'boolean'
+          } else if (value instanceof Date || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value))) {
+            fieldTypes[key] = 'date'
+          } else {
+            fieldTypes[key] = 'object'
+          }
+        }
+      })
+    }
+  })
+  
+  return Array.from(fieldsSet).map(field => ({
+    name: field,
+    type: fieldTypes[field] || 'unknown'
+  })).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// 获取字段的显示值
+const getFieldValue = (record: any, field: string) => {
+  const value = record._source?.[field]
+  if (value === null || value === undefined) return '-'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
 
 // 方法
 const loadIndices = async () => {
@@ -535,6 +705,34 @@ const formatNumber = (num?: number) => {
   return num.toLocaleString()
 }
 
+// 字段类型颜色映射
+const getFieldTypeColor = (type: string) => {
+  const colorMap: Record<string, string> = {
+    text: 'blue',
+    number: 'green', 
+    boolean: 'orange',
+    date: 'purple',
+    object: 'red',
+    unknown: 'gray'
+  }
+  return colorMap[type] || 'gray'
+}
+
+// 查看文档详情
+const viewDocumentDetail = (document: any) => {
+  // 使用Arco Design的Modal组件显示详情
+  const modal = {
+    title: `文档详情 - ${document._id}`,
+    content: JSON.stringify(document, null, 2),
+    width: '80%',
+    okText: '关闭'
+  }
+  
+  // 这里可以调用Modal.info或其他方式显示详情
+  console.log('Document detail:', document)
+  Message.info('文档详情功能待完善')
+}
+
 // 生命周期
 onMounted(() => {
   if (connectionStore.currentConnection) {
@@ -550,6 +748,18 @@ watch(
       loadIndices()
     }
   }
+)
+
+// 监听结果字段变化，自动选择前几个字段
+watch(
+  resultFields,
+  (newFields) => {
+    if (newFields.length > 0 && selectedFields.value.length === 0) {
+      // 默认选择前8个字段
+      selectedFields.value = newFields.slice(0, 8).map(f => f.name)
+    }
+  },
+  { immediate: true }
 )
 </script>
 
@@ -820,6 +1030,143 @@ watch(
   background: var(--gray-50);
   border-radius: var(--radius-lg);
   border: 1px solid var(--gray-200);
+}
+
+/* 表格和卡片视图样式 */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+}
+
+.fields-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.field-selector {
+  padding: 1rem;
+  min-width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: background-color 0.2s;
+}
+
+.field-checkbox:hover {
+  background: var(--gray-100);
+}
+
+.field-name {
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.id-text {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.field-cell {
+  max-width: 150px;
+  overflow: hidden;
+}
+
+.field-value {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  word-break: break-word;
+}
+
+/* 卡片视图样式 */
+.cards-container {
+  padding: 1rem 0;
+}
+
+.result-card {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-field {
+  padding: 0.5rem;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+}
+
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.card-field .field-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-field .field-value {
+  font-size: 0.875rem;
+  color: var(--gray-800);
+  word-break: break-word;
+  line-height: 1.4;
+  max-height: 60px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.more-fields {
+  text-align: center;
+  padding: 0.5rem;
+  border-top: 1px dashed var(--gray-300);
+}
+
+.json-result {
+  background: var(--gray-900);
+  color: var(--gray-100);
+  padding: 1rem;
+  border-radius: var(--radius);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  max-height: 500px;
+  overflow: auto;
 }
 
 @media (max-width: 1200px) {
