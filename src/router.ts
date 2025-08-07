@@ -3,6 +3,7 @@ import Connections from './views/Connections.vue'
 import Dashboard from './views/Dashboard.vue'
 import Indices from './views/Indices.vue'
 import Search from './views/Search.vue'
+import EasySearch from './views/EasySearch.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -25,6 +26,11 @@ const router = createRouter({
       path: '/indices',
       name: 'indices',
       component: Indices
+    },
+    {
+      path: '/easy-search',
+      name: 'easy-search',
+      component: EasySearch
     },
     {
       path: '/search',
