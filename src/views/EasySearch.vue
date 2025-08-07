@@ -500,11 +500,11 @@
                   <a-empty description="无文档数据" />
                 </div>
                 <div v-else>
-                  <!-- 字段截断提示 -->
-                  <div v-if="truncatedFieldsCount > 0" class="truncation-notice">
+                  <!-- 性能警告 -->
+                  <div v-if="needsPerformanceWarning" class="truncation-notice">
                     <a-alert
-                      type="info"
-                      :message="`为提升性能，仅显示前50个字段，剩余${truncatedFieldsCount}个字段请查看JSON视图`"
+                      type="warning"
+                      :message="`文档包含${Object.keys(selectedDocument._source).length}个字段，渲染可能较慢`"
                       show-icon
                       closable
                     />
@@ -539,13 +539,13 @@
 
             <a-tab-pane key="json" title="🔧 JSON视图">
               <div class="json-viewer">
-                <pre>{{ safeJsonStringify(selectedDocument, 15000) }}</pre>
+                <pre>{{ safeJsonStringify(selectedDocument, 50000) }}</pre>
               </div>
             </a-tab-pane>
 
             <a-tab-pane key="source" title="📄 仅内容">
               <div class="json-viewer">
-                <pre>{{ safeJsonStringify(selectedDocument._source, 15000) }}</pre>
+                <pre>{{ safeJsonStringify(selectedDocument._source, 50000) }}</pre>
               </div>
             </a-tab-pane>
           </a-tabs>
@@ -947,21 +947,22 @@ const safeDisplayValue = (value: any): string => {
   
   if (typeof value === 'object') {
     try {
-      // 对于数组，如果元素太多就截断
-      if (Array.isArray(value) && value.length > 10) {
-        const truncated = [...value.slice(0, 10), `... ${value.length - 10} more items`]
-        return safeJsonStringify(truncated, 2000)
+      // 对于数组，如果元素太多就截断显示
+      if (Array.isArray(value) && value.length > 20) {
+        const truncated = [...value.slice(0, 20), `... ${value.length - 20} more items`]
+        return safeJsonStringify(truncated, 5000)
       }
       
-      return safeJsonStringify(value, 2000)
+      return safeJsonStringify(value, 5000)
     } catch (error) {
       return '[Complex Object - Unable to display]'
     }
   }
   
   if (typeof value === 'string') {
-    if (value.length > 500) {
-      return value.substring(0, 500) + '\n... [truncated - full content in JSON view]'
+    // 增加字符串显示长度
+    if (value.length > 2000) {
+      return value.substring(0, 2000) + '\n... [truncated - full content in JSON view]'
     }
     return value
   }
@@ -1017,13 +1018,10 @@ const limitedDocumentFields = computed(() => {
   const source = selectedDocument.value._source
   const keys = Object.keys(source)
   
-  // 如果字段太多，只显示前50个
-  if (keys.length > 50) {
-    const limitedSource: Record<string, any> = {}
-    keys.slice(0, 50).forEach(key => {
-      limitedSource[key] = source[key]
-    })
-    return limitedSource
+  // 如果字段太多，显示所有但提供警告
+  if (keys.length > 100) {
+    // 仍然显示所有字段，但会在UI中给出性能提示
+    return source
   }
   
   return source
@@ -1031,9 +1029,15 @@ const limitedDocumentFields = computed(() => {
 
 // 获取被截断的字段数量
 const truncatedFieldsCount = computed(() => {
-  if (!selectedDocument.value?._source) return 0
+  // 不再截断字段，但会在字段数超过100时显示性能警告
+  return 0
+})
+
+// 检查是否需要性能警告
+const needsPerformanceWarning = computed(() => {
+  if (!selectedDocument.value?._source) return false
   const totalFields = Object.keys(selectedDocument.value._source).length
-  return Math.max(0, totalFields - 50)
+  return totalFields > 100
 })
 </script>
 
@@ -1509,14 +1513,18 @@ const truncatedFieldsCount = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-height: 60vh;
+  height: 50vh;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.5rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
 }
 
 .truncation-notice {
   margin-bottom: 1rem;
   padding: 0.5rem;
+  flex-shrink: 0;
 }
 
 .no-data {
@@ -1552,6 +1560,8 @@ const truncatedFieldsCount = computed(() => {
 
 .field-content {
   padding: 1rem;
+  min-height: 2rem;
+  word-break: break-word;
 }
 
 .simple-value {
@@ -1559,6 +1569,7 @@ const truncatedFieldsCount = computed(() => {
   color: var(--gray-700);
   word-break: break-word;
   line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .object-value {
@@ -1602,7 +1613,7 @@ const truncatedFieldsCount = computed(() => {
   background: var(--gray-900);
   border-radius: var(--radius);
   overflow: hidden;
-  max-height: 60vh;
+  height: 50vh;
   border: 1px solid var(--gray-700);
 }
 
@@ -1614,7 +1625,7 @@ const truncatedFieldsCount = computed(() => {
   margin: 0;
   padding: 1rem;
   overflow: auto;
-  min-height: 200px;
+  height: 100%;
   scrollbar-width: thin;
   scrollbar-color: var(--gray-600) var(--gray-800);
 }
@@ -1638,16 +1649,18 @@ const truncatedFieldsCount = computed(() => {
 }
 
 .structured-content::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 .structured-content::-webkit-scrollbar-track {
   background: var(--gray-100);
+  border-radius: 6px;
 }
 
 .structured-content::-webkit-scrollbar-thumb {
   background: var(--gray-400);
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 2px solid var(--gray-100);
 }
 
 .structured-content::-webkit-scrollbar-thumb:hover {
