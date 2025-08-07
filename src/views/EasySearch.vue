@@ -1449,16 +1449,16 @@ const needsPerformanceWarning = computed(() => {
 
 /* 文档详情模态框样式 */
 .document-detail-modal {
-  max-height: 90vh;
+  max-height: 95vh;
 }
 
 .document-detail-modal :deep(.arco-modal) {
-  max-height: 90vh;
+  max-height: 95vh;
 }
 
 .document-detail-modal :deep(.arco-modal-body) {
-  max-height: 75vh;
-  overflow: hidden;
+  max-height: 85vh;
+  overflow-y: auto;
   padding: 0;
 }
 
@@ -1467,9 +1467,7 @@ const needsPerformanceWarning = computed(() => {
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
-  height: 100%;
-  max-height: 75vh;
-  overflow: hidden;
+  min-height: 200px;
 }
 
 .detail-actions {
@@ -1483,8 +1481,7 @@ const needsPerformanceWarning = computed(() => {
 .detail-section {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  flex: 1;
-  overflow: hidden;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
@@ -1492,7 +1489,6 @@ const needsPerformanceWarning = computed(() => {
 .detail-section :deep(.arco-card-body) {
   padding: 1rem;
   flex: 1;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -1505,7 +1501,6 @@ const needsPerformanceWarning = computed(() => {
 
 .detail-section :deep(.arco-tabs-content) {
   flex: 1;
-  overflow: hidden;
 }
 
 /* 结构化内容样式 */
@@ -1513,7 +1508,7 @@ const needsPerformanceWarning = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  height: 50vh;
+  max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.5rem;
@@ -1613,7 +1608,7 @@ const needsPerformanceWarning = computed(() => {
   background: var(--gray-900);
   border-radius: var(--radius);
   overflow: hidden;
-  height: 50vh;
+  max-height: 70vh;
   border: 1px solid var(--gray-700);
 }
 
@@ -1625,7 +1620,7 @@ const needsPerformanceWarning = computed(() => {
   margin: 0;
   padding: 1rem;
   overflow: auto;
-  height: 100%;
+  max-height: 70vh;
   scrollbar-width: thin;
   scrollbar-color: var(--gray-600) var(--gray-800);
 }
