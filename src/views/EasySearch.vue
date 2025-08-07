@@ -500,8 +500,18 @@
                   <a-empty description="无文档数据" />
                 </div>
                 <div v-else>
+                  <!-- 字段截断提示 -->
+                  <div v-if="truncatedFieldsCount > 0" class="truncation-notice">
+                    <a-alert
+                      type="info"
+                      :message="`为提升性能，仅显示前50个字段，剩余${truncatedFieldsCount}个字段请查看JSON视图`"
+                      show-icon
+                      closable
+                    />
+                  </div>
+                  
                   <div
-                    v-for="(value, key) in selectedDocument._source"
+                    v-for="(value, key) in limitedDocumentFields"
                     :key="key"
                     class="field-item"
                   >
@@ -516,10 +526,10 @@
                         <em>null</em>
                       </div>
                       <div v-else-if="typeof value === 'object'" class="object-value">
-                        <pre>{{ JSON.stringify(value, null, 2) }}</pre>
+                        <pre>{{ safeDisplayValue(value) }}</pre>
                       </div>
                       <div v-else class="simple-value">
-                        {{ value }}
+                        {{ safeDisplayValue(value) }}
                       </div>
                     </div>
                   </div>
@@ -529,13 +539,13 @@
 
             <a-tab-pane key="json" title="🔧 JSON视图">
               <div class="json-viewer">
-                <pre>{{ JSON.stringify(selectedDocument, null, 2) }}</pre>
+                <pre>{{ safeJsonStringify(selectedDocument, 15000) }}</pre>
               </div>
             </a-tab-pane>
 
             <a-tab-pane key="source" title="📄 仅内容">
               <div class="json-viewer">
-                <pre>{{ JSON.stringify(selectedDocument._source, null, 2) }}</pre>
+                <pre>{{ safeJsonStringify(selectedDocument._source, 15000) }}</pre>
               </div>
             </a-tab-pane>
           </a-tabs>
@@ -652,9 +662,7 @@ const resultFields = computed(() => {
 // 获取字段的显示值
 const getFieldValue = (record: any, field: string) => {
   const value = record._source?.[field]
-  if (value === null || value === undefined) return '-'
-  if (typeof value === 'object') return JSON.stringify(value)
-  return String(value)
+  return safeDisplayValue(value)
 }
 
 // 方法
@@ -829,8 +837,21 @@ const getFieldTypeColor = (type: string) => {
 // 查看文档详情
 const viewDocumentDetail = (document: any) => {
   console.log('ViewDocumentDetail called with:', document)
-  console.log('Document._source:', document._source)
-  console.log('Document keys:', Object.keys(document))
+  
+  // 检查文档大小，如果太大则警告用户
+  try {
+    const jsonString = JSON.stringify(document)
+    const sizeInMB = new Blob([jsonString]).size / (1024 * 1024)
+    
+    if (sizeInMB > 5) {
+      Message.warning(`文档较大 (${sizeInMB.toFixed(2)}MB)，加载可能较慢`)
+    }
+    
+    console.log('Document size:', sizeInMB.toFixed(2), 'MB')
+    console.log('Document._source keys:', Object.keys(document._source || {}))
+  } catch (error) {
+    console.warn('Could not calculate document size:', error)
+  }
   
   selectedDocument.value = document
   documentDetailVisible.value = true
@@ -845,7 +866,7 @@ const closeDocumentDetail = () => {
 // 复制文档内容到剪贴板
 const copyDocumentToClipboard = async (document: any) => {
   try {
-    const text = JSON.stringify(document, null, 2)
+    const text = safeJsonStringify(document, 50000) // 允许更大的复制内容
     await navigator.clipboard.writeText(text)
     Message.success('文档内容已复制到剪贴板')
   } catch (error) {
@@ -883,6 +904,69 @@ const getValueType = (value: any): string => {
   if (Array.isArray(value)) return 'array'
   if (typeof value === 'object') return 'object'
   return 'unknown'
+}
+
+// 安全的JSON字符串化，防止循环引用和过大数据
+const safeJsonStringify = (obj: any, maxLength: number = 10000): string => {
+  const seen = new WeakSet()
+  
+  try {
+    const result = JSON.stringify(obj, (key, value) => {
+      // 处理循环引用
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular Reference]'
+        }
+        seen.add(value)
+      }
+      
+      // 截断过长的字符串
+      if (typeof value === 'string' && value.length > 1000) {
+        return value.substring(0, 1000) + '... [truncated]'
+      }
+      
+      return value
+    }, 2)
+    
+    // 如果结果太长，进行截断
+    if (result.length > maxLength) {
+      return result.substring(0, maxLength) + '\n... [content truncated for performance]'
+    }
+    
+    return result
+  } catch (error) {
+    console.error('JSON stringify error:', error)
+    return '[Unable to display - JSON stringify failed]'
+  }
+}
+
+// 安全的对象值显示
+const safeDisplayValue = (value: any): string => {
+  if (value === null) return '[null]'
+  if (value === undefined) return '[undefined]'
+  
+  if (typeof value === 'object') {
+    try {
+      // 对于数组，如果元素太多就截断
+      if (Array.isArray(value) && value.length > 10) {
+        const truncated = [...value.slice(0, 10), `... ${value.length - 10} more items`]
+        return safeJsonStringify(truncated, 2000)
+      }
+      
+      return safeJsonStringify(value, 2000)
+    } catch (error) {
+      return '[Complex Object - Unable to display]'
+    }
+  }
+  
+  if (typeof value === 'string') {
+    if (value.length > 500) {
+      return value.substring(0, 500) + '\n... [truncated - full content in JSON view]'
+    }
+    return value
+  }
+  
+  return String(value)
 }
 
 // 获取字段显示名称（用于卡片视图）
@@ -925,6 +1009,32 @@ watch(
   },
   { immediate: true }
 )
+
+// 限制结构化视图显示的字段数量，避免性能问题
+const limitedDocumentFields = computed(() => {
+  if (!selectedDocument.value?._source) return {}
+  
+  const source = selectedDocument.value._source
+  const keys = Object.keys(source)
+  
+  // 如果字段太多，只显示前50个
+  if (keys.length > 50) {
+    const limitedSource: Record<string, any> = {}
+    keys.slice(0, 50).forEach(key => {
+      limitedSource[key] = source[key]
+    })
+    return limitedSource
+  }
+  
+  return source
+})
+
+// 获取被截断的字段数量
+const truncatedFieldsCount = computed(() => {
+  if (!selectedDocument.value?._source) return 0
+  const totalFields = Object.keys(selectedDocument.value._source).length
+  return Math.max(0, totalFields - 50)
+})
 </script>
 
 <style scoped>
@@ -1401,6 +1511,11 @@ watch(
   gap: 1rem;
   max-height: 60vh;
   overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.truncation-notice {
+  margin-bottom: 1rem;
   padding: 0.5rem;
 }
 
