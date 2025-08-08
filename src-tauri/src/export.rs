@@ -52,7 +52,7 @@ impl ExportService {
         let file = File::create(file_path)?;
         let writer = BufWriter::new(file);
 
-        let export_data = if let Some(fields) = selected_fields {
+        if let Some(fields) = selected_fields {
             // 只导出选中的字段
             let filtered_data: Vec<Value> = data.iter()
                 .map(|doc| self.filter_fields(doc, fields))
@@ -61,7 +61,7 @@ impl ExportService {
         } else {
             // 导出所有数据
             serde_json::to_writer_pretty(writer, data)?;
-        };
+        }
 
         Ok(())
     }

@@ -354,7 +354,7 @@ pub async fn export_search_results(
         search_query.from = Some(current_from);
         search_query.size = Some(current_size);
 
-        match client.search_documents(search_query).await {
+        match client.search(search_query).await {
             Ok(result) => {
                 if result.hits.is_empty() {
                     break;
