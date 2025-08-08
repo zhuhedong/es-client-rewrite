@@ -359,11 +359,14 @@ pub async fn export_search_results(
                 if result.hits.is_empty() {
                     break;
                 }
+                
+                // 在移动前保存长度
+                let hits_count = result.hits.len();
                 all_data.extend(result.hits);
                 current_from += current_size;
                 
                 // 如果这批返回的数据少于请求的数量，说明已经没有更多数据了
-                if result.hits.len() < current_size as usize {
+                if hits_count < current_size as usize {
                     break;
                 }
             }
