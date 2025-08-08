@@ -29,7 +29,7 @@ rand = "0.8"
 base64 = "0.21"
 argon2 = "0.5"
 csv = "1.2"
-xlsxwriter = "0.4"
+rust_xlsxwriter = "0.78"
 dirs = "5.0"
 
 [dev-dependencies]

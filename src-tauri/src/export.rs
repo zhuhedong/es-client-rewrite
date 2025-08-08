@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
-use xlsxwriter::*;
+use rust_xlsxwriter::{Workbook, Worksheet, Format};
 
 pub struct ExportService;
 
@@ -103,8 +103,8 @@ impl ExportService {
             return Err(anyhow!("没有数据可以导出"));
         }
 
-        let workbook = Workbook::new(file_path.to_str().unwrap())?;
-        let mut worksheet = workbook.add_worksheet(Some("Data"))?;
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
 
         // 提取字段名
         let headers = if let Some(fields) = selected_fields {
@@ -114,14 +114,11 @@ impl ExportService {
         };
 
         // 创建表头格式
-        let header_format = workbook.add_format()
-            .set_bold()
-            .set_bg_color(FormatColor::Gray)
-            .set_border(FormatBorder::Thin);
+        let header_format = Format::new().set_bold();
 
         // 写入表头
         for (col, header) in headers.iter().enumerate() {
-            worksheet.write_string(0, col as u16, header, Some(&header_format))?;
+            worksheet.write_string_with_format(0, col as u16, header, &header_format)?;
         }
 
         // 写入数据
@@ -129,16 +126,16 @@ impl ExportService {
             for (col_idx, header) in headers.iter().enumerate() {
                 let value = self.get_nested_field(doc, header);
                 let cell_value = self.value_to_string(&value);
-                worksheet.write_string((row_idx + 1) as u32, col_idx as u16, &cell_value, None)?;
+                worksheet.write_string((row_idx + 1) as u32, col_idx as u16, &cell_value)?;
             }
         }
 
         // 自动调整列宽
         for col in 0..headers.len() {
-            worksheet.set_column(col as u16, col as u16, 15.0, None)?;
+            worksheet.set_column_width(col as u16, 15.0)?;
         }
 
-        workbook.close()?;
+        workbook.save(file_path)?;
         Ok(())
     }
 
