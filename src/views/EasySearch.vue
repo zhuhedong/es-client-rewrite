@@ -1095,7 +1095,21 @@ const showExportDialog = (format: ExportFormat) => {
   }
   
   exportFormat.value = format
-  exportFilename.value = `search_results_${Date.now()}.${format.toLowerCase()}`
+  // 根据格式设置正确的文件扩展名
+  const getFileExtension = (format: ExportFormat): string => {
+    switch (format) {
+      case ExportFormat.JSON:
+        return 'json'
+      case ExportFormat.CSV:
+        return 'csv'
+      case ExportFormat.Excel:
+        return 'xlsx'
+      default:
+        return 'json'
+    }
+  }
+  
+  exportFilename.value = `search_results_${Date.now()}.${getFileExtension(format)}`
   exportDialogVisible.value = true
 }
 
