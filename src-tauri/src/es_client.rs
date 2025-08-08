@@ -27,7 +27,7 @@ impl EsClient {
         let mut response = self.make_request(&url).await?;
         
         // 尝试获取根路径信息，包含版本号
-        if let Ok(root_info) = response.as_object_mut() {
+        if let Some(root_info) = response.as_object_mut() {
             // 获取集群健康状态
             if let Ok(health) = self.get_cluster_health().await {
                 // 将健康状态信息合并到响应中
