@@ -78,6 +78,19 @@ export const useConnectionStore = defineStore('connection', () => {
     }
   }
 
+  // 测试临时连接（未保存的连接数据）
+  const testTemporaryConnection = async (connection: EsConnection) => {
+    try {
+      const result = await Api.testTemporaryConnection(connection)
+      Message.success('连接测试成功')
+      return result
+    } catch (error) {
+      console.error('Temporary connection test failed:', error)
+      Message.error('连接测试失败')
+      throw error
+    }
+  }
+
   // 设置当前连接
   const setCurrentConnection = (id: string) => {
     currentConnectionId.value = id
@@ -92,6 +105,7 @@ export const useConnectionStore = defineStore('connection', () => {
     addConnection,
     removeConnection,
     testConnection,
+    testTemporaryConnection,
     setCurrentConnection
   }
 })

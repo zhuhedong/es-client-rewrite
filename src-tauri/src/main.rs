@@ -29,6 +29,7 @@ async fn main() {
             list_connections,
             remove_connection,
             test_connection,
+            test_temporary_connection,
             get_cluster_health,
             list_indices,
             search_documents,

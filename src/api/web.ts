@@ -43,6 +43,41 @@ export class WebApi {
     }
   }
 
+  static async testTemporaryConnection(connection: EsConnection): Promise<any> {
+    try {
+      // 先获取根路径的版本信息
+      const versionResponse = await fetch(`${connection.url}/`, {
+        method: 'GET',
+        headers: this.getHeaders(connection)
+      })
+      
+      let versionInfo: any = {}
+      if (versionResponse.ok) {
+        versionInfo = await versionResponse.json()
+      }
+      
+      // 然后获取集群健康状态
+      const healthResponse = await fetch(`${connection.url}/_cluster/health`, {
+        method: 'GET',
+        headers: this.getHeaders(connection)
+      })
+      
+      if (!healthResponse.ok) {
+        throw new Error(`HTTP ${healthResponse.status}: ${healthResponse.statusText}`)
+      }
+      
+      const healthData = await healthResponse.json()
+      
+      // 合并版本信息和健康状态
+      return {
+        ...versionInfo,
+        ...healthData
+      }
+    } catch (error) {
+      throw new Error(`连接测试失败: ${error}`)
+    }
+  }
+
   // 集群信息
   static async getClusterHealth(connectionId: string): Promise<ClusterHealth> {
     const connection = this.getConnection(connectionId)

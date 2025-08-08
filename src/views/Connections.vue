@@ -60,6 +60,7 @@
       v-model:visible="showAddDialog"
       title="添加连接"
       @ok="handleAddConnection"
+      @cancel="handleCancelDialog"
       :confirm-loading="loading"
     >
       <a-form ref="formRef" :model="form" layout="vertical">
@@ -88,6 +89,55 @@
             </div>
           </template>
         </a-form-item>
+
+        <!-- 测试连接按钮和结果显示 -->
+        <a-form-item>
+          <div class="test-connection-section">
+            <a-button 
+              type="outline" 
+              @click="handleTestConnection"
+              :loading="testLoading"
+              :disabled="!form.url"
+            >
+              <template #icon>
+                <icon-link />
+              </template>
+              测试连接
+            </a-button>
+            
+            <!-- 测试结果显示 -->
+            <div v-if="testResult" class="test-result">
+              <a-alert 
+                :type="testResult.success ? 'success' : 'error'" 
+                :title="testResult.success ? '连接测试成功' : '连接测试失败'"
+                :show-icon="true"
+                style="margin-top: 1rem;"
+              >
+                <template #description>
+                  <div v-if="testResult.success && testResult.data">
+                    <p><strong>集群名称:</strong> {{ testResult.data.cluster_name }}</p>
+                    <p><strong>状态:</strong> 
+                      <a-tag :color="getStatusColor(testResult.data.status)">
+                        {{ testResult.data.status }}
+                      </a-tag>
+                    </p>
+                    <p v-if="testResult.data.version">
+                      <strong>Elasticsearch 版本:</strong> {{ testResult.data.version.number || 'N/A' }}
+                    </p>
+                    <p v-if="testResult.data.version && testResult.data.version.lucene_version">
+                      <strong>Lucene 版本:</strong> {{ testResult.data.version.lucene_version }}
+                    </p>
+                    <p><strong>节点数:</strong> {{ testResult.data.number_of_nodes }}</p>
+                    <p><strong>数据节点数:</strong> {{ testResult.data.number_of_data_nodes }}</p>
+                  </div>
+                  <div v-else-if="!testResult.success">
+                    {{ testResult.message }}
+                  </div>
+                </template>
+              </a-alert>
+            </div>
+          </div>
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -97,7 +147,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '../stores/connection'
-import { IconPlus } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconLink } from '@arco-design/web-vue/es/icon'
 import { Modal, Message } from '@arco-design/web-vue'
 import type { EsConnection } from '../types'
 
@@ -106,6 +156,7 @@ const connectionStore = useConnectionStore()
 
 const showAddDialog = ref(false)
 const loading = ref(false)
+const testLoading = ref(false)
 const formRef = ref()
 
 const form = ref({
@@ -114,6 +165,12 @@ const form = ref({
   username: '',
   password: ''
 })
+
+const testResult = ref<{
+  success: boolean
+  data?: any
+  message?: string
+} | null>(null)
 
 const currentConnection = computed(() => connectionStore.currentConnection)
 
@@ -137,17 +194,71 @@ const handleAddConnection = async () => {
     await connectionStore.addConnection(connection)
     
     showAddDialog.value = false
+    // 重置表单和测试结果
     form.value = {
       name: '',
       url: '',
       username: '',
       password: ''
     }
+    testResult.value = null
   } catch (error) {
     console.error('Failed to add connection:', error)
   } finally {
     loading.value = false
   }
+}
+
+const handleTestConnection = async () => {
+  if (!form.value.url) return
+  
+  try {
+    testLoading.value = true
+    testResult.value = null
+    
+    const connection: EsConnection = {
+      id: '',
+      name: form.value.name || 'test',
+      url: form.value.url,
+      username: form.value.username || undefined,
+      password: form.value.password || undefined,
+      headers: {}
+    }
+    
+    const result = await connectionStore.testTemporaryConnection(connection)
+    
+    testResult.value = {
+      success: true,
+      data: result
+    }
+  } catch (error: any) {
+    testResult.value = {
+      success: false,
+      message: error.message || '连接测试失败'
+    }
+  } finally {
+    testLoading.value = false
+  }
+}
+
+const getStatusColor = (status: string): string => {
+  switch (status) {
+    case 'green': return 'green'
+    case 'yellow': return 'orange'  
+    case 'red': return 'red'
+    default: return 'gray'
+  }
+}
+
+const handleCancelDialog = () => {
+  // 重置表单和测试结果
+  form.value = {
+    name: '',
+    url: '',
+    username: '',
+    password: ''
+  }
+  testResult.value = null
 }
 
 const testConnection = async (id: string) => {
@@ -279,5 +390,27 @@ const deleteConnection = (connection: EsConnection) => {
 :deep(.arco-form-item-label-text) {
   font-weight: 600 !important;
   color: var(--gray-700) !important;
+}
+
+/* 测试连接区域样式 */
+.test-connection-section {
+  margin-top: 0.5rem;
+}
+
+.test-result {
+  margin-top: 1rem;
+}
+
+.test-result p {
+  margin: 0.5rem 0;
+}
+
+.test-result strong {
+  color: var(--gray-700);
+  margin-right: 0.5rem;
+}
+
+:deep(.arco-alert-description) {
+  font-size: 0.875rem;
 }
 </style>

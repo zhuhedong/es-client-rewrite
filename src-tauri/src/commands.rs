@@ -237,6 +237,17 @@ pub async fn test_connection(
 }
 
 #[tauri::command]
+pub async fn test_temporary_connection(
+    connection: EsConnection,
+) -> Result<Value, String> {
+    let client = EsClient::new(connection);
+    client
+        .test_connection()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn get_cluster_health(
     manager: State<'_, ConnectionManager>,
     connection_id: String,

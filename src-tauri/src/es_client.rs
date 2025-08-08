@@ -23,8 +23,24 @@ impl EsClient {
     }
 
     pub async fn test_connection(&self) -> Result<Value> {
-        let url = format!("{}/_cluster/health", self.connection.url);
-        let response = self.make_request(&url).await?;
+        let url = format!("{}/", self.connection.url);
+        let mut response = self.make_request(&url).await?;
+        
+        // 尝试获取根路径信息，包含版本号
+        if let Ok(root_info) = response.as_object_mut() {
+            // 获取集群健康状态
+            if let Ok(health) = self.get_cluster_health().await {
+                // 将健康状态信息合并到响应中
+                if let Ok(health_value) = serde_json::to_value(health) {
+                    if let Some(health_obj) = health_value.as_object() {
+                        for (key, value) in health_obj {
+                            root_info.insert(key.clone(), value.clone());
+                        }
+                    }
+                }
+            }
+        }
+        
         Ok(response)
     }
 

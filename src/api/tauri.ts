@@ -19,6 +19,10 @@ export class TauriApi {
     return await invoke('test_connection', { connectionId })
   }
 
+  static async testTemporaryConnection(connection: EsConnection): Promise<any> {
+    return await invoke('test_temporary_connection', { connection })
+  }
+
   // 集群信息
   static async getClusterHealth(connectionId: string): Promise<ClusterHealth> {
     return await invoke('get_cluster_health', { connectionId })
