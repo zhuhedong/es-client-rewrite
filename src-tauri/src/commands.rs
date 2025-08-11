@@ -398,8 +398,8 @@ pub async fn export_search_results(
         let current_size = std::cmp::min(batch_size, remaining);
 
         let mut search_query = request.query.clone();
-        search_query.from = Some(current_from);
-        search_query.size = Some(current_size);
+        search_query.from = Some(current_from as i32);
+        search_query.size = Some(current_size as i32);
 
         match client.search(search_query).await {
             Ok(result) => {

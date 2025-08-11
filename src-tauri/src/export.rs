@@ -2,11 +2,10 @@ use crate::types::{ExportFormat, ExportRequest, ExportResult};
 use anyhow::{anyhow, Result};
 use csv::WriterBuilder;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
-use rust_xlsxwriter::{Workbook, Worksheet, Format};
+use rust_xlsxwriter::{Workbook, Format};
 
 pub struct ExportService;
 

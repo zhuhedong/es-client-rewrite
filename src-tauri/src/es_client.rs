@@ -381,7 +381,7 @@ impl EsClient {
         }
         
         if let Some(refresh_interval) = &settings.refresh_interval {
-            index_settings["refresh_interval"] = Value::from(refresh_interval);
+            index_settings["refresh_interval"] = Value::from(refresh_interval.as_str());
         }
         
         if let Some(max_result_window) = settings.max_result_window {
@@ -433,7 +433,7 @@ impl EsClient {
                 }
                 
                 if let Some(routing) = &action.routing {
-                    add_obj["routing"] = Value::from(routing);
+                    add_obj["routing"] = Value::from(routing.as_str());
                 }
                 
                 serde_json::json!({ "add": add_obj })
@@ -462,7 +462,7 @@ impl EsClient {
             body["filter"] = filter_val.clone();
         }
         if let Some(routing_val) = routing {
-            body["routing"] = Value::from(routing_val);
+            body["routing"] = Value::from(routing_val.as_str());
         }
         
         self.make_put_request(&url, &body).await
@@ -529,7 +529,7 @@ impl EsClient {
 
     // 聚合查询
     pub async fn execute_aggregation(&self, request: &AggregationRequest) -> Result<AggregationResult> {
-        let url = format!("{}{}/_search", self.connection.url, 
+        let url = format!("{}{}{}/_search", self.connection.url, 
             if request.index.starts_with('/') { "" } else { "/" }, 
             request.index);
         
@@ -676,10 +676,11 @@ impl EsClient {
         let url = format!("{}/_nodes", self.connection.url);
         let response = self.make_request(&url).await?;
         
+        let empty_map = serde_json::Map::new();
         let nodes = response
             .get("nodes")
             .and_then(|n| n.as_object())
-            .unwrap_or(&serde_json::Map::new());
+            .unwrap_or(&empty_map);
             
         let mut node_list = Vec::new();
         
@@ -698,10 +699,11 @@ impl EsClient {
         let url = format!("{}/_nodes/stats", self.connection.url);
         let response = self.make_request(&url).await?;
         
+        let empty_map = serde_json::Map::new();
         let nodes = response
             .get("nodes")
             .and_then(|n| n.as_object())
-            .unwrap_or(&serde_json::Map::new());
+            .unwrap_or(&empty_map);
             
         let mut stats_list = Vec::new();
         
