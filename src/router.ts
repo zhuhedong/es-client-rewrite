@@ -4,6 +4,10 @@ import Dashboard from './views/Dashboard.vue'
 import Indices from './views/Indices.vue'
 import Search from './views/Search.vue'
 import EasySearch from './views/EasySearch.vue'
+import Documents from './views/Documents.vue'
+import Templates from './views/Templates.vue'
+import QueryBuilder from './views/QueryBuilder.vue'
+import Import from './views/Import.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -36,6 +40,26 @@ const router = createRouter({
       path: '/search',
       name: 'search',
       component: Search
+    },
+    {
+      path: '/documents',
+      name: 'documents',
+      component: Documents
+    },
+    {
+      path: '/templates',
+      name: 'templates',
+      component: Templates
+    },
+    {
+      path: '/query-builder',
+      name: 'query-builder',
+      component: QueryBuilder
+    },
+    {
+      path: '/import',
+      name: 'import',
+      component: Import
     }
   ]
 })

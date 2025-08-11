@@ -1,7 +1,9 @@
 use crate::es_client::EsClient;
 use crate::export::ExportService;
+use crate::import::ImportService;
 use crate::types::*;
 use crate::crypto::{CryptoManager, SecureConnectionData};
+use crate::error::ErrorDetails;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -225,56 +227,56 @@ pub async fn remove_connection(
 pub async fn test_connection(
     manager: State<'_, ConnectionManager>,
     connection_id: String,
-) -> Result<Value, String> {
+) -> Result<Value, ErrorDetails> {
     let client = manager
         .get_client(&connection_id)
-        .ok_or("Connection not found")?;
+        .ok_or_else(|| ErrorDetails::validation_error("connection_id", "连接不存在"))?;
 
     client
         .test_connection()
         .await
-        .map_err(|e| e.to_string())
+        .map_err(ErrorDetails::from)
 }
 
 #[tauri::command]
 pub async fn test_temporary_connection(
     connection: EsConnection,
-) -> Result<Value, String> {
+) -> Result<Value, ErrorDetails> {
     let client = EsClient::new(connection);
     client
         .test_connection()
         .await
-        .map_err(|e| e.to_string())
+        .map_err(ErrorDetails::from)
 }
 
 #[tauri::command]
 pub async fn get_cluster_health(
     manager: State<'_, ConnectionManager>,
     connection_id: String,
-) -> Result<ClusterHealth, String> {
+) -> Result<ClusterHealth, ErrorDetails> {
     let client = manager
         .get_client(&connection_id)
-        .ok_or("Connection not found")?;
+        .ok_or_else(|| ErrorDetails::validation_error("connection_id", "连接不存在"))?;
 
     client
         .get_cluster_health()
         .await
-        .map_err(|e| e.to_string())
+        .map_err(ErrorDetails::from)
 }
 
 #[tauri::command]
 pub async fn list_indices(
     manager: State<'_, ConnectionManager>,
     connection_id: String,
-) -> Result<Vec<IndexInfo>, String> {
+) -> Result<Vec<IndexInfo>, ErrorDetails> {
     let client = manager
         .get_client(&connection_id)
-        .ok_or("Connection not found")?;
+        .ok_or_else(|| ErrorDetails::validation_error("connection_id", "连接不存在"))?;
 
     client
         .list_indices()
         .await
-        .map_err(|e| e.to_string())
+        .map_err(ErrorDetails::from)
 }
 
 #[tauri::command]
@@ -282,13 +284,31 @@ pub async fn search_documents(
     manager: State<'_, ConnectionManager>,
     connection_id: String,
     query: SearchQuery,
-) -> Result<SearchResult, String> {
+) -> Result<SearchResult, ErrorDetails> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or_else(|| ErrorDetails::validation_error("connection_id", "连接不存在"))?;
+
+    client
+        .search(query)
+        .await
+        .map_err(ErrorDetails::from)
+}
+
+#[tauri::command]
+pub async fn search_documents_stream(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    query: SearchQuery,
+    batch_size: Option<usize>,
+    max_results: Option<usize>,
+) -> Result<Vec<serde_json::Value>, String> {
     let client = manager
         .get_client(&connection_id)
         .ok_or("Connection not found")?;
 
     client
-        .search(query)
+        .search_stream(query, batch_size.unwrap_or(1000), max_results)
         .await
         .map_err(|e| e.to_string())
 }
@@ -305,6 +325,22 @@ pub async fn get_index_mapping(
 
     client
         .get_mapping(&index)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_field_names(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+) -> Result<Vec<String>, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_field_names(&index)
         .await
         .map_err(|e| e.to_string())
 }
@@ -400,4 +436,407 @@ pub async fn get_export_directory() -> Result<String, String> {
         Ok(path) => Ok(path.to_string_lossy().to_string()),
         Err(e) => Err(e.to_string()),
     }
+}
+
+#[tauri::command]
+pub async fn create_document(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    request: DocumentRequest,
+) -> Result<DocumentResponse, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .create_document(&request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_document(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    request: DocumentRequest,
+) -> Result<DocumentResponse, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .update_document(&request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_document(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+    id: String,
+) -> Result<GetDocumentResponse, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_document(&index, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_document(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+    id: String,
+) -> Result<DocumentResponse, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .delete_document(&index, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn bulk_operations(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    request: BulkRequest,
+) -> Result<BulkResponse, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .bulk_operations(&request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_index_settings(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_index_settings(&index)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_index_settings(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+    settings: IndexSettings,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .update_index_settings(&index, &settings)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_aliases(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_aliases()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_index_aliases(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_index_aliases(&index)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn manage_aliases(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    request: AliasRequest,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .manage_aliases(&request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn add_alias(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+    alias: String,
+    filter: Option<Value>,
+    routing: Option<String>,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .add_alias(&index, &alias, filter.as_ref(), routing.as_deref())
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn remove_alias(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    index: String,
+    alias: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .remove_alias(&index, &alias)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_templates(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_templates()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_template(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    name: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_template(&name)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn put_template(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    request: TemplateRequest,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .put_template(&request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_template(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    name: String,
+) -> Result<Value, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .delete_template(&name)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn execute_aggregation(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    request: AggregationRequest,
+) -> Result<AggregationResult, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .execute_aggregation(&request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn execute_sql(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    query: SqlQuery,
+) -> Result<SqlResult, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .execute_sql(&query)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn execute_sql_cursor(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    cursor: String,
+) -> Result<SqlResult, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .execute_sql_cursor(&cursor)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn close_sql_cursor(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    cursor: String,
+) -> Result<(), String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .close_sql_cursor(&cursor)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_nodes_info(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+) -> Result<Vec<NodeInfo>, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_nodes_info()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_nodes_stats(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+) -> Result<Vec<NodeStats>, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_nodes_stats()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_node_info(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    node_id: String,
+) -> Result<NodeInfo, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_node_info(&node_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_node_stats(
+    manager: State<'_, ConnectionManager>,
+    connection_id: String,
+    node_id: String,
+) -> Result<NodeStats, String> {
+    let client = manager
+        .get_client(&connection_id)
+        .ok_or("Connection not found")?;
+
+    client
+        .get_node_stats(&node_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn import_data(
+    manager: State<'_, ConnectionManager>,
+    request: ImportRequest,
+) -> Result<ImportResult, String> {
+    let client = manager
+        .get_client(&request.connection_id)
+        .ok_or("Connection not found")?;
+
+    let import_service = ImportService::new();
+    import_service
+        .import_data(&request, &client)
+        .await
+        .map_err(|e| e.to_string())
 }

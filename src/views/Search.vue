@@ -65,20 +65,33 @@
               </a-form-item>
 
               <a-form-item label="查询条件（JSON）">
-                <a-textarea 
+                <QueryEditor
                   v-model="queryText"
-                  placeholder="请输入查询JSON"
-                  :rows="10"
-                  :auto-size="{ minRows: 8, maxRows: 20 }"
+                  placeholder="请输入查询JSON..."
+                  height="250px"
+                  :connection-id="connectionStore.currentConnection?.id"
+                  :selected-index="queryForm.index"
+                  :show-validation="true"
+                  :format-on-blur="true"
+                  :enable-autocomplete="true"
+                  @validation-change="onQueryValidationChange"
                 />
+                <div class="autocomplete-hint">
+                  <div class="hint-icon">💡</div>
+                  <div class="hint-text">
+                    支持字段名和查询语法自动补全，按 <kbd>Ctrl+Space</kbd> 触发补全菜单
+                  </div>
+                </div>
               </a-form-item>
 
               <a-form-item label="排序条件（JSON，可选）">
-                <a-textarea 
+                <JsonEditor
                   v-model="sortText"
-                  placeholder="请输入排序JSON"
-                  :rows="3"
-                  :auto-size="{ minRows: 3, maxRows: 8 }"
+                  placeholder="请输入排序JSON（可选）..."
+                  height="120px"
+                  :show-validation="true"
+                  :format-on-blur="true"
+                  @validation-change="onSortValidationChange"
                 />
               </a-form-item>
 
@@ -96,6 +109,16 @@
                   </a-button>
                   <a-button size="small" @click="setTemplate('bool')" block>
                     布尔查询
+                  </a-button>
+                  <a-divider orientation="center">聚合查询</a-divider>
+                  <a-button size="small" @click="setTemplate('terms_agg')" block type="outline">
+                    分组聚合
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('date_histogram')" block type="outline">
+                    时间聚合
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('stats_agg')" block type="outline">
+                    统计聚合
                   </a-button>
                 </a-space>
               </a-form-item>
@@ -123,7 +146,53 @@
               <a-tabs default-active-key="table" :lazy-load="true">
                 <!-- 表格视图 -->
                 <a-tab-pane key="table" title="表格视图">
+                  <div class="table-controls">
+                    <a-space>
+                      <span>显示模式：</span>
+                      <a-radio-group v-model="viewMode" size="small">
+                        <a-radio value="virtual">虚拟滚动</a-radio>
+                        <a-radio value="pagination">分页模式</a-radio>
+                      </a-radio-group>
+                      <span v-if="searchResult" class="data-info">
+                        当前显示 {{ searchResult.hits.length }} 条，共 {{ searchResult.total }} 条记录
+                      </span>
+                    </a-space>
+                  </div>
+
+                  <!-- 虚拟滚动表格 -->
+                  <VirtualTable
+                    v-if="viewMode === 'virtual'"
+                    :data="searchResult.hits"
+                    :columns="tableColumns"
+                    :container-height="500"
+                    :item-height="60"
+                    :loading="searchStore.loadingMore"
+                    :has-more="hasMoreData"
+                    @load-more="loadMoreData"
+                    @row-click="onRowClick"
+                  >
+                    <template #_index="{ record }">
+                      {{ record._index }}
+                    </template>
+                    <template #_type="{ record }">
+                      {{ record._type }}
+                    </template>
+                    <template #_id="{ record }">
+                      <span class="doc-id">{{ record._id }}</span>
+                    </template>
+                    <template #_score="{ record }">
+                      <span class="score-badge">{{ record._score?.toFixed(3) || 'N/A' }}</span>
+                    </template>
+                    <template #_source="{ record }">
+                      <div class="source-preview">
+                        <pre>{{ JSON.stringify(record._source, null, 2).slice(0, 200) }}...</pre>
+                      </div>
+                    </template>
+                  </VirtualTable>
+
+                  <!-- 传统分页表格 -->
                   <a-table 
+                    v-else
                     :data="searchResult.hits"
                     :pagination="false"
                     :scroll="{ x: '100%', y: '400px' }"
@@ -143,6 +212,14 @@
                   </a-table>
                 </a-tab-pane>
 
+                <!-- 可视化视图 -->
+                <a-tab-pane key="visualization" title="可视化" v-if="hasAggregations">
+                  <VisualizationPanel 
+                    :search-result="searchResult"
+                    :key="visualizationKey"
+                  />
+                </a-tab-pane>
+
                 <!-- JSON视图 -->
                 <a-tab-pane key="json" title="JSON视图">
                   <pre class="json-result">{{ JSON.stringify(searchResult, null, 2) }}</pre>
@@ -150,7 +227,7 @@
               </a-tabs>
 
               <!-- 分页 -->
-              <div class="pagination-wrapper">
+              <div class="pagination-wrapper" v-if="viewMode === 'pagination'">
                 <a-pagination 
                   :current="currentPage"
                   :page-size="queryForm.size || 10"
@@ -160,7 +237,7 @@
                   show-total
                   show-jumper
                   show-page-size
-                  :page-size-options="['10', '20', '50', '100']"
+                  :page-size-options="['10', '20', '50', '100', '200']"
                 />
               </div>
             </div>
@@ -172,12 +249,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useConnectionStore } from '../stores/connection'
 import { useIndexStore } from '../stores/index'
 import { useSearchStore } from '../stores/search'
 import { IconSearch, IconDelete } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
+import VisualizationPanel from '../components/VisualizationPanel.vue'
+import JsonEditor from '../components/JsonEditor.vue'
+import QueryEditor from '../components/QueryEditor.vue'
+import VirtualTable from '../components/VirtualTable.vue'
+import { Api } from '../api'
 
 const connectionStore = useConnectionStore()
 const indexStore = useIndexStore()
@@ -191,8 +273,43 @@ const queryForm = ref({
 
 const queryText = ref('{\n  "match_all": {}\n}')
 const sortText = ref('')
+const viewMode = ref('pagination') // 'virtual' | 'pagination'
+
+// JSON validation states
+const queryValid = ref(true)
+const sortValid = ref(true)
+const queryValidationError = ref('')
+const sortValidationError = ref('')
 
 const searchResult = computed(() => searchStore.searchResult)
+
+// 虚拟滚动的数据管理
+const allData = ref<any[]>([])
+const isLoadingMore = ref(false)
+
+// 表格列定义
+const tableColumns = [
+  { key: '_index', title: '索引', width: '120px' },
+  { key: '_type', title: '类型', width: '100px' },
+  { key: '_id', title: 'ID', width: '150px' },
+  { key: '_score', title: '评分', width: '80px' },
+  { key: '_source', title: '数据', width: '400px' }
+]
+
+// 是否有更多数据
+const hasMoreData = computed(() => {
+  if (!searchResult.value) return false
+  return allData.value.length < (searchResult.value.total || 0)
+})
+
+// 检查搜索结果是否包含聚合数据
+const hasAggregations = computed(() => {
+  return searchResult.value?.aggregations && 
+         Object.keys(searchResult.value.aggregations).length > 0
+})
+
+// 可视化组件的key，用于强制重新渲染
+const visualizationKey = ref(0)
 
 // 计算当前页数
 const currentPage = computed(() => {
@@ -204,7 +321,11 @@ const templates = {
   match_all: '{\n  "match_all": {}\n}',
   match: '{\n  "match": {\n    "field_name": "search_value"\n  }\n}',
   range: '{\n  "range": {\n    "field_name": {\n      "gte": 10,\n      "lte": 20\n    }\n  }\n}',
-  bool: '{\n  "bool": {\n    "must": [\n      { "match": { "field1": "value1" } }\n    ],\n    "filter": [\n      { "term": { "field2": "value2" } }\n    ]\n  }\n}'
+  bool: '{\n  "bool": {\n    "must": [\n      { "match": { "field1": "value1" } }\n    ],\n    "filter": [\n      { "term": { "field2": "value2" } }\n    ]\n  }\n}',
+  // 添加聚合查询模板
+  terms_agg: '{\n  "match_all": {},\n  "aggs": {\n    "field_terms": {\n      "terms": {\n        "field": "field_name.keyword",\n        "size": 10\n      }\n    }\n  }\n}',
+  date_histogram: '{\n  "match_all": {},\n  "aggs": {\n    "date_trend": {\n      "date_histogram": {\n        "field": "@timestamp",\n        "calendar_interval": "day"\n      }\n    }\n  }\n}',
+  stats_agg: '{\n  "match_all": {},\n  "aggs": {\n    "field_stats": {\n      "stats": {\n        "field": "numeric_field"\n      }\n    }\n  }\n}'
 }
 
 onMounted(() => {
@@ -246,6 +367,17 @@ const executeSearch = async () => {
     return
   }
 
+  // Check JSON validation before executing
+  if (!queryValid.value) {
+    Message.error('查询条件JSON格式错误：' + queryValidationError.value)
+    return
+  }
+
+  if (sortText.value.trim() && !sortValid.value) {
+    Message.error('排序条件JSON格式错误：' + sortValidationError.value)
+    return
+  }
+
   try {
     let query
     try {
@@ -274,6 +406,11 @@ const executeSearch = async () => {
     }
 
     await searchStore.executeSearch(connectionStore.currentConnection.id, searchQuery)
+    
+    // 如果有聚合数据，更新可视化组件
+    if (searchStore.searchResult?.aggregations) {
+      visualizationKey.value++
+    }
   } catch (error) {
     console.error('Search failed:', error)
   }
@@ -287,36 +424,95 @@ const setTemplate = (templateName: keyof typeof templates) => {
   queryText.value = templates[templateName]
 }
 
-const onPageChange = (page: number) => {
+// Validation handlers
+const onQueryValidationChange = (isValid: boolean, error?: string) => {
+  queryValid.value = isValid
+  queryValidationError.value = error || ''
+}
+
+const onSortValidationChange = (isValid: boolean, error?: string) => {
+  sortValid.value = isValid
+  sortValidationError.value = error || ''
+}
+
+const onPageChange = async (page: number) => {
   console.log('Page change:', page, 'Size:', queryForm.value.size)
   
-  // 确保页数有效
-  if (page < 1) page = 1
+  if (!connectionStore.currentConnection) return
   
-  queryForm.value.from = (page - 1) * (queryForm.value.size || 10)
+  // 使用 store 的优化分页方法
+  await searchStore.goToPage(connectionStore.currentConnection.id, page, queryForm.value.size)
   
-  console.log('New from:', queryForm.value.from)
-  executeSearch()
+  // 预加载下一页
+  nextTick(() => {
+    if (connectionStore.currentConnection) {
+      searchStore.preloadNextPage(connectionStore.currentConnection.id)
+    }
+  })
 }
 
 const onPageSizeChange = (pageSize: number) => {
   console.log('Page size change:', pageSize)
   
-  // 确保页大小有效
   if (pageSize < 1) pageSize = 10
   if (pageSize > 10000) pageSize = 10000
   
   const currentPage = Math.floor((queryForm.value.from || 0) / (queryForm.value.size || 10)) + 1
-  const oldSize = queryForm.value.size || 10
   queryForm.value.size = pageSize
+  queryForm.value.from = Math.floor((queryForm.value.from || 0) / pageSize) * pageSize
   
-  // 尽量保持当前查看的数据位置
-  const currentFirstRecord = queryForm.value.from + 1
-  queryForm.value.from = Math.floor((currentFirstRecord - 1) / pageSize) * pageSize
-  
-  console.log('Size changed from', oldSize, 'to', pageSize, 'new from:', queryForm.value.from)
   executeSearch()
 }
+
+// 加载更多数据（虚拟滚动模式）
+const loadMoreData = async () => {
+  if (!connectionStore.currentConnection || isLoadingMore.value || !hasMoreData.value) return
+  
+  try {
+    isLoadingMore.value = true
+    const nextFrom = allData.value.length
+    const batchSize = 50 // 每次加载50条
+    
+    const searchQuery = {
+      index: queryForm.value.index,
+      query: JSON.parse(queryText.value),
+      from: nextFrom,
+      size: batchSize,
+      sort: sortText.value.trim() ? JSON.parse(sortText.value) : undefined
+    }
+    
+    // 使用流式搜索API
+    const result = await Api.searchDocumentsStream(
+      connectionStore.currentConnection.id, 
+      searchQuery,
+      batchSize,
+      batchSize
+    )
+    
+    if (result && result.length > 0) {
+      allData.value.push(...result)
+    }
+  } catch (error) {
+    console.error('Load more failed:', error)
+    Message.error('加载更多数据失败')
+  } finally {
+    isLoadingMore.value = false
+  }
+}
+
+// 行点击事件
+const onRowClick = (item: any, index: number) => {
+  console.log('Row clicked:', item, index)
+  // 可以在这里实现详情查看等功能
+}
+
+// 监听视图模式变化
+watch(viewMode, (newMode) => {
+  if (newMode === 'virtual' && searchResult.value) {
+    // 切换到虚拟滚动时，初始化所有数据
+    allData.value = [...searchResult.value.hits]
+  }
+})
 </script>
 
 <style scoped>
@@ -421,6 +617,36 @@ const onPageSizeChange = (pageSize: number) => {
   background: var(--gray-50);
   border-radius: var(--radius-lg);
   border: 1px solid var(--gray-200);
+}
+
+/* 自动补全提示样式 */
+.autocomplete-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border: 1px solid #0ea5e9;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  color: #0369a1;
+}
+
+.hint-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.hint-text kbd {
+  background: #1e40af;
+  color: white;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* 现代化卡片样式 */
@@ -529,5 +755,79 @@ const onPageSizeChange = (pageSize: number) => {
   background: var(--primary-color) !important;
   border-color: var(--primary-color) !important;
   color: white !important;
+}
+
+/* 表格控制区域 */
+.table-controls {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+}
+
+.data-info {
+  color: var(--color-text-3);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* 虚拟滚动相关样式 */
+.doc-id {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--color-text-2);
+  background: var(--color-fill-2);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-badge {
+  background: linear-gradient(135deg, var(--primary-color), var(--warning-color));
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.source-preview {
+  max-width: 350px;
+  max-height: 50px;
+  overflow: hidden;
+}
+
+.source-preview pre {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-2);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 分页样式优化 */
+.pagination-wrapper {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+/* 无限滚动加载指示器 */
+.virtual-scroll-container {
+  position: relative;
 }
 </style>
