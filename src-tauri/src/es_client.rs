@@ -381,7 +381,7 @@ impl EsClient {
         }
         
         if let Some(refresh_interval) = &settings.refresh_interval {
-            index_settings["refresh_interval"] = Value::from(refresh_interval);
+            index_settings["refresh_interval"] = Value::from(refresh_interval.as_str());
         }
         
         if let Some(max_result_window) = settings.max_result_window {
@@ -433,7 +433,7 @@ impl EsClient {
                 }
                 
                 if let Some(routing) = &action.routing {
-                    add_obj["routing"] = Value::from(routing);
+                    add_obj["routing"] = Value::from(routing.as_str());
                 }
                 
                 serde_json::json!({ "add": add_obj })
@@ -529,7 +529,7 @@ impl EsClient {
 
     // 聚合查询
     pub async fn execute_aggregation(&self, request: &AggregationRequest) -> Result<AggregationResult> {
-        let url = format!("{}{}{}_search", self.connection.url, 
+        let url = format!("{}{}{}/_search", self.connection.url, 
             if request.index.starts_with('/') { "" } else { "/" }, 
             request.index);
         

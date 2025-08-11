@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::error::Error as StdError;
 use anyhow::Error as AnyhowError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -203,6 +204,8 @@ impl fmt::Display for ErrorDetails {
         Ok(())
     }
 }
+
+impl StdError for ErrorDetails {}
 
 impl From<AnyhowError> for ErrorDetails {
     fn from(error: AnyhowError) -> Self {
