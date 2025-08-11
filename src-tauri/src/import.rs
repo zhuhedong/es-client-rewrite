@@ -49,7 +49,7 @@ impl ImportService {
             let mut operations = Vec::new();
 
             for (doc_idx, document) in chunk.iter().enumerate() {
-                let line_number = (chunk_idx * batch_size + doc_idx + 1) as u64;
+                let _line_number = (chunk_idx * batch_size + doc_idx + 1) as u64;
                 total_processed += 1;
 
                 let doc_id = if let Some(id_field) = &request.id_field {
@@ -80,7 +80,7 @@ impl ImportService {
 
                         if let Some(item_obj) = item.as_object() {
                             let mut has_error = false;
-                            for (action, result) in item_obj {
+                            for (_action, result) in item_obj {
                                 if let Some(result_obj) = result.as_object() {
                                     if result_obj.contains_key("error") {
                                         has_error = true;

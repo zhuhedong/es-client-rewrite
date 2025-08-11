@@ -76,42 +76,42 @@ impl ErrorDetails {
         let (code, message, suggestion) = match status {
             400 => (
                 "BAD_REQUEST",
-                "请求参数错误",
+                "请求参数错误".to_string(),
                 "请检查请求参数的格式和内容"
             ),
             401 => (
                 "UNAUTHORIZED",
-                "未授权访问",
+                "未授权访问".to_string(),
                 "请检查认证信息或重新登录"
             ),
             403 => (
                 "FORBIDDEN",
-                "权限不足",
+                "权限不足".to_string(),
                 "当前用户没有执行此操作的权限"
             ),
             404 => (
                 "NOT_FOUND",
-                "资源不存在",
+                "资源不存在".to_string(),
                 "请确认资源路径和名称是否正确"
             ),
             409 => (
                 "CONFLICT",
-                "资源冲突",
+                "资源冲突".to_string(),
                 "资源已存在或操作冲突，请检查后重试"
             ),
             429 => (
                 "RATE_LIMITED",
-                "请求频率过高",
+                "请求频率过高".to_string(),
                 "请稍后重试，或调整请求频率"
             ),
             500..=599 => (
                 "SERVER_ERROR",
-                "服务器内部错误",
+                "服务器内部错误".to_string(),
                 "请稍后重试，如果问题持续请联系管理员"
             ),
             _ => (
                 "HTTP_ERROR",
-                &format!("HTTP 错误 {}", status),
+                format!("HTTP 错误 {}", status),
                 "请检查请求或稍后重试"
             ),
         };
@@ -225,7 +225,7 @@ pub fn parse_http_error(status: u16, body: &str) -> ErrorDetails {
 
             return match error_type {
                 "index_not_found_exception" => {
-                    let index = extract_index_from_error(reason).unwrap_or("unknown");
+                    let index = extract_index_from_error(reason).unwrap_or_else(|| "unknown".to_string());
                     ErrorDetails::index_not_found(&index)
                 },
                 "parsing_exception" | "query_parsing_exception" => {

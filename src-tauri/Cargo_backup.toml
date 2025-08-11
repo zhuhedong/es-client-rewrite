@@ -15,7 +15,8 @@ crate-type = ["cdylib", "rlib"]
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.8", features = ["shell-open"], default-features = false }
+# Comment out Tauri to test core library compilation
+# tauri = { version = "1.8", features = ["shell-open"], default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
@@ -37,4 +38,5 @@ tokio-test = "0.4"
 
 [features]
 default = ["custom-protocol"]
-custom-protocol = ["tauri/custom-protocol"]
+custom-protocol = []
+# custom-protocol = ["tauri/custom-protocol"]

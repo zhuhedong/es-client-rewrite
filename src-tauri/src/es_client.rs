@@ -529,7 +529,7 @@ impl EsClient {
 
     // 聚合查询
     pub async fn execute_aggregation(&self, request: &AggregationRequest) -> Result<AggregationResult> {
-        let url = format!("{}{}{}_search", self.connection.url, 
+        let url = format!("{}{}{}/_search", self.connection.url, 
             if request.index.starts_with('/') { "" } else { "/" }, 
             request.index);
         
