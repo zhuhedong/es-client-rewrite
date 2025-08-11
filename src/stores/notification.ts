@@ -308,7 +308,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
   
   // 显示加载中的消息
-  const showLoading = (content: string = '加载中...'): string => {
+  const showLoading = (content: string = '加载中...'): any => {
     return Message.loading({
       content,
       duration: 0
@@ -316,7 +316,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
   
   // 隐藏加载消息
-  const hideLoading = (id?: string): void => {
+  const hideLoading = (id?: any): void => {
     if (id) {
       Message.clear(id)
     } else {

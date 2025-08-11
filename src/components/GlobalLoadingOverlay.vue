@@ -14,8 +14,8 @@
           :tip="primaryState?.message || '加载中...'"
         >
           <template #icon>
-            <LoadingOutlined v-if="spinnerType === 'spin'" />
-            <SyncOutlined v-else-if="spinnerType === 'sync'" :spin="true" />
+            <IconLoading v-if="spinnerType === 'spin'" />
+            <IconSync v-else-if="spinnerType === 'sync'" :spin="true" />
             <div v-else-if="spinnerType === 'dots'" class="loading-dots">
               <div class="dot"></div>
               <div class="dot"></div>
@@ -30,7 +30,7 @@
         <a-progress 
           :percent="primaryState.progress" 
           :show-info="true"
-          :status="primaryState.progress >= 100 ? 'success' : 'active'"
+          :status="primaryState.progress >= 100 ? 'success' : 'normal'"
           :stroke-width="6"
         />
       </div>
@@ -41,7 +41,7 @@
           type="text" 
           danger
           @click="handleCancel"
-          :icon="h(CloseOutlined)"
+          :icon="h(IconClose)"
         >
           取消操作
         </a-button>
@@ -55,7 +55,7 @@
             type="text" 
             size="small"
             @click="showDetails = false"
-            :icon="h(UpOutlined)"
+            :icon="h(IconUp)"
           />
         </div>
         <div class="details-list">
@@ -82,7 +82,7 @@
               size="small"
               danger
               @click="() => handleItemCancel(state)"
-              :icon="h(CloseOutlined)"
+              :icon="h(IconClose)"
             />
           </div>
         </div>
@@ -97,7 +97,7 @@
           type="text" 
           size="small"
           @click="showDetails = true"
-          :icon="h(DownOutlined)"
+          :icon="h(IconDown)"
         >
           查看所有操作 ({{ loadingStates.length }})
         </a-button>
@@ -110,12 +110,12 @@
 import { ref, computed, h } from 'vue'
 import { useLoadingStore } from '../stores/loading'
 import { 
-  LoadingOutlined, 
-  SyncOutlined, 
-  CloseOutlined, 
-  DownOutlined, 
-  UpOutlined 
-} from '@ant-design/icons-vue'
+  IconLoading, 
+  IconSync, 
+  IconClose, 
+  IconDown, 
+  IconUp 
+} from '@arco-design/web-vue/es/icon'
 
 interface Props {
   // 是否显示全局加载遮罩

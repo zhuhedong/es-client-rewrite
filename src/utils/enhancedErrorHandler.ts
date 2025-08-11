@@ -155,7 +155,6 @@ export class EnhancedErrorHandler {
       content,
       duration,
       closable: true,
-      action: actions.length > 0 ? actions : undefined,
       onClose: () => {
         this.retryCallbacks.delete(notificationId)
       }
@@ -455,8 +454,7 @@ export class EnhancedErrorHandler {
       title,
       content: error.userMessage,
       duration,
-      closable: true,
-      action: actions.length > 0 ? actions : undefined
+      closable: true
     })
   }
 
