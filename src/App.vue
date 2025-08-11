@@ -142,8 +142,8 @@ const pageTitle = computed(() => {
   return titles[selectedKeys.value[0]] || 'ES Client'
 })
 
-const onCollapse = (collapsed: boolean) => {
-  collapsed = collapsed
+const onCollapse = (collapsedState: boolean) => {
+  collapsed.value = collapsedState
 }
 
 const onMenuClick = (key: string) => {
