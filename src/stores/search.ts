@@ -113,6 +113,9 @@ export const useSearchStore = defineStore('search', () => {
       size: newSize
     }
     
+    // 更新内部查询状态
+    query.value = { ...searchQuery }
+    
     await executeSearch(connectionId, searchQuery)
   }
 

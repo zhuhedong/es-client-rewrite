@@ -665,7 +665,9 @@ const visualizationKey = ref(0)
 
 // 计算当前页数
 const currentPage = computed(() => {
-  return Math.floor((queryForm.value.from || 0) / (queryForm.value.size || 10)) + 1
+  const from = queryForm.value.from || 0
+  const size = queryForm.value.size || 10
+  return Math.floor(from / size) + 1
 })
 
 // 条件表单验证
@@ -1200,6 +1202,9 @@ const onPageChange = async (page: number) => {
   
   if (!connectionStore.currentConnection) return
   
+  // 更新查询表单的 from 值
+  queryForm.value.from = (page - 1) * (queryForm.value.size || 10)
+  
   // 使用 store 的优化分页方法
   await searchStore.goToPage(connectionStore.currentConnection.id, page, queryForm.value.size)
   
@@ -1217,9 +1222,19 @@ const onPageSizeChange = (pageSize: number) => {
   if (pageSize < 1) pageSize = 10
   if (pageSize > 10000) pageSize = 10000
   
+  // 计算当前页码，保持在同一页
   const currentPage = Math.floor((queryForm.value.from || 0) / (queryForm.value.size || 10)) + 1
+  
+  // 更新页面大小
   queryForm.value.size = pageSize
-  queryForm.value.from = Math.floor((queryForm.value.from || 0) / pageSize) * pageSize
+  
+  // 重新计算 from 值以保持在相似位置
+  queryForm.value.from = (currentPage - 1) * pageSize
+  
+  // 确保 from 不超过总记录数
+  if (searchResult.value && queryForm.value.from >= searchResult.value.total) {
+    queryForm.value.from = Math.max(0, Math.floor((searchResult.value.total - 1) / pageSize) * pageSize)
+  }
   
   executeSearch()
 }
@@ -1281,6 +1296,15 @@ watch(searchResult, (newResult) => {
     }
   }
 }, { immediate: true })
+
+// 监听搜索store的查询状态变化，同步到表单
+watch(() => searchStore.query, (newQuery) => {
+  if (newQuery && newQuery.index) {
+    queryForm.value.index = newQuery.index
+    queryForm.value.from = newQuery.from || 0
+    queryForm.value.size = newQuery.size || 10
+  }
+}, { deep: true })
 
 // 行点击事件
 const onRowClick = (item: any, index: number) => {
