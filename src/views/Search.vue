@@ -567,7 +567,7 @@ const containerHeight = ref(500)
 
 // 更新容器高度
 const updateContainerHeight = () => {
-  containerHeight.value = Math.max(400, window.innerHeight - 400)
+  containerHeight.value = Math.max(500, window.innerHeight - 300)
 }
 
 // 查询模式
@@ -1353,14 +1353,14 @@ watch(viewMode, (newMode) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 .header-left h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
   font-weight: 700;
   background: linear-gradient(135deg, #1890ff, #722ed1);
   -webkit-background-clip: text;
@@ -1385,10 +1385,10 @@ watch(viewMode, (newMode) => {
 }
 
 .search-content {
-  height: calc(100vh - 200px);
+  height: calc(100vh - 150px);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   overflow: hidden;
 }
 
@@ -1400,7 +1400,7 @@ watch(viewMode, (newMode) => {
 /* 结果行样式 */
 .results-row {
   flex: 1;
-  min-height: 400px;
+  min-height: 500px;
   overflow: hidden;
 }
 
@@ -1412,7 +1412,8 @@ watch(viewMode, (newMode) => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
   height: 100%;
-  min-height: 400px;
+  min-height: 300px;
+  max-height: 350px;
   display: flex;
   flex-direction: column;
 }
@@ -1429,7 +1430,8 @@ watch(viewMode, (newMode) => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 350px;
+  min-height: 250px;
+  overflow-y: auto;
 }
 
 /* 查询结果区域样式 */
