@@ -1411,12 +1411,22 @@ watch(viewMode, (newMode) => {
   border-radius: 12px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
-  height: fit-content;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .simple-query-card,
 .advanced-query-card {
   margin-top: 0 !important;
+}
+
+.config-card .arco-card-body,
+.simple-query-card .arco-card-body,
+.advanced-query-card .arco-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 查询结果区域样式 */
