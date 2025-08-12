@@ -349,7 +349,7 @@
                     v-if="viewMode === 'virtual'"
                     :data="searchResult.hits"
                     :columns="tableColumns"
-                    :container-height="500"
+                    :container-height="containerHeight"
                     :item-height="60"
                     :loading="searchStore.loadingMore"
                     :has-more="hasMoreData"
@@ -383,7 +383,7 @@
                     v-else
                     :data="searchResult.hits"
                     :pagination="false"
-                    :scroll="{ x: '100%', y: '400px' }"
+                    :scroll="{ x: '100%', y: (containerHeight - 50) + 'px' }"
                     size="small"
                   >
                     <template #columns>
@@ -539,7 +539,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useConnectionStore } from '../stores/connection'
 import { useIndexStore } from '../stores/index'
 import { useSearchStore } from '../stores/search'
@@ -561,6 +561,14 @@ import { Api } from '../api'
 const connectionStore = useConnectionStore()
 const indexStore = useIndexStore()
 const searchStore = useSearchStore()
+
+// 响应式容器高度
+const containerHeight = ref(500)
+
+// 更新容器高度
+const updateContainerHeight = () => {
+  containerHeight.value = Math.max(400, window.innerHeight - 400)
+}
 
 // 查询模式
 const queryMode = ref('simple')
@@ -740,6 +748,16 @@ onMounted(() => {
       queryText.value = JSON.stringify(searchStore.query.query, null, 2)
     }
   }
+  
+  // 初始化容器高度
+  updateContainerHeight()
+  
+  // 监听窗口大小变化
+  window.addEventListener('resize', updateContainerHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateContainerHeight)
 })
 
 watch(
@@ -1367,10 +1385,11 @@ watch(viewMode, (newMode) => {
 }
 
 .search-content {
-  height: calc(100% - 120px);
+  height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  overflow: hidden;
 }
 
 /* 查询行样式 */
@@ -1381,7 +1400,8 @@ watch(viewMode, (newMode) => {
 /* 结果行样式 */
 .results-row {
   flex: 1;
-  min-height: 0;
+  min-height: 400px;
+  overflow: hidden;
 }
 
 /* 查询配置和简单查询卡片样式 */
@@ -1426,6 +1446,15 @@ watch(viewMode, (newMode) => {
 
 .results-card .arco-tabs-content {
   flex: 1;
+  overflow: hidden;
+}
+
+.results-card .arco-tabs-content-list {
+  height: 100%;
+}
+
+.results-card .arco-tabs-content-item {
+  height: 100%;
   overflow: hidden;
 }
 
