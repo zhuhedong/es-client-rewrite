@@ -1,6 +1,6 @@
 <template>
   <div class="virtual-table" ref="containerRef" @scroll="onScroll">
-    <div class="virtual-table-header">
+    <div class="virtual-table-header" :style="{ minWidth: totalWidth + 'px' }">
       <div class="header-cell" v-for="column in columns" :key="column.key" :style="{ width: column.width }">
         {{ column.title }}
       </div>
@@ -15,7 +15,7 @@
         v-for="(item, index) in visibleItems"
         :key="startIndex + index"
         class="virtual-table-row"
-        :style="{ height: `${itemHeight}px` }"
+        :style="{ height: `${itemHeight}px`, minWidth: totalWidth + 'px' }"
         @click="$emit('row-click', item, startIndex + index)"
       >
         <div 
@@ -74,6 +74,14 @@ const emit = defineEmits<{
 
 const containerRef = ref<HTMLElement>()
 const scrollTop = ref(0)
+
+// 计算总宽度
+const totalWidth = computed(() => {
+  return props.columns.reduce((total, column) => {
+    const width = parseInt(column.width) || 100
+    return total + width
+  }, 0)
+})
 
 // 计算可见范围
 const visibleCount = computed(() => Math.ceil(props.containerHeight / props.itemHeight) + 2)

@@ -383,7 +383,7 @@
                     v-else
                     :data="searchResult.hits"
                     :pagination="false"
-                    :scroll="{ x: '100%', y: (containerHeight - 50) + 'px' }"
+                    :scroll="{ x: totalTableWidth + 'px', y: (containerHeight - 50) + 'px' }"
                     size="small"
                   >
                     <template #columns>
@@ -622,6 +622,32 @@ const selectedFields = ref<string[]>([])
 // 虚拟滚动的数据管理
 const allData = ref<any[]>([])
 const isLoadingMore = ref(false)
+
+// 计算表格总宽度
+const totalTableWidth = computed(() => {
+  if (!searchResult.value || !searchResult.value.hits || searchResult.value.hits.length === 0) {
+    return 480 // 基础列宽度总和: 120 + 100 + 180 + 80
+  }
+
+  // 从搜索结果中提取所有字段
+  const allSourceFields = extractFieldsFromResults(searchResult.value.hits)
+  
+  // 根据用户选择决定显示哪些字段
+  const fieldsToShow = selectedFields.value.length > 0 
+    ? selectedFields.value.filter(field => allSourceFields.includes(field))
+    : allSourceFields.slice(0, 10) // 默认显示前10个字段
+  
+  // 基础元数据列宽度: 索引(120) + 类型(100) + ID(180) + 评分(80)
+  let totalWidth = 480
+  
+  // 计算动态字段列宽度
+  fieldsToShow.forEach(field => {
+    const columnWidth = parseInt(getOptimalColumnWidth(field, searchResult.value!.hits))
+    totalWidth += columnWidth
+  })
+  
+  return Math.max(totalWidth, 800) // 确保最小宽度为800px
+})
 
 // 动态表格列定义
 const tableColumns = computed(() => {
