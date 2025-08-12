@@ -1412,6 +1412,7 @@ watch(viewMode, (newMode) => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
   height: 100%;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
@@ -1427,6 +1428,8 @@ watch(viewMode, (newMode) => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  min-height: 350px;
 }
 
 /* 查询结果区域样式 */
