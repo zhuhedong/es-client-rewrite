@@ -462,15 +462,15 @@
       </div>
     </div>
 
-      <!-- 添加条件弹窗 -->
-      <a-modal
-        v-model:visible="addConditionModalVisible"
-        title="添加查询条件"
-        @ok="handleAddCondition"
-        @cancel="resetConditionForm"
-        :ok-button-props="{ disabled: !isConditionFormValid }"
-        width="600px"
-      >
+    <!-- 添加条件弹窗 -->
+    <a-modal
+      v-model:visible="addConditionModalVisible"
+      title="添加查询条件"
+      @ok="handleAddCondition"
+      @cancel="resetConditionForm"
+      :ok-button-props="{ disabled: !isConditionFormValid }"
+      width="600px"
+    >
         <a-form :model="conditionForm" layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
@@ -535,7 +535,6 @@
           </a-row>
         </a-form>
       </a-modal>
-    </div>
   </div>
 </template>
 
