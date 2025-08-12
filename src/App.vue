@@ -40,18 +40,11 @@
             索引管理
           </a-menu-item>
           
-          <a-menu-item key="easy-search" :disabled="!currentConnection">
-            <template #icon>
-              <icon-thunderbolt />
-            </template>
-            智能查询
-          </a-menu-item>
-          
           <a-menu-item key="search" :disabled="!currentConnection">
             <template #icon>
-              <icon-code />
+              <icon-search />
             </template>
-            高级查询
+            数据查询
           </a-menu-item>
           
           <a-menu-item key="documents" :disabled="!currentConnection">
@@ -66,13 +59,6 @@
               <icon-calendar />
             </template>
             模板管理
-          </a-menu-item>
-          
-          <a-menu-item key="query-builder" :disabled="!currentConnection">
-            <template #icon>
-              <icon-tool />
-            </template>
-            查询构建器
           </a-menu-item>
           
           <a-menu-item key="import" :disabled="!currentConnection">
@@ -111,11 +97,8 @@ import {
   IconDashboard, 
   IconList, 
   IconSearch,
-  IconThunderbolt,
-  IconCode,
   IconFile,
   IconCalendar,
-  IconTool,
   IconUpload
 } from '@arco-design/web-vue/es/icon'
 
@@ -132,11 +115,9 @@ const pageTitle = computed(() => {
     connections: '连接管理',
     dashboard: '仪表板',
     indices: '索引管理',
-    'easy-search': '智能查询',
-    search: '高级查询',
+    search: '数据查询',
     documents: '文档管理',
     templates: '模板管理',
-    'query-builder': '查询构建器',
     import: '数据导入'
   }
   return titles[selectedKeys.value[0]] || 'ES Client'
@@ -148,13 +129,7 @@ const onCollapse = (collapsedState: boolean) => {
 
 const onMenuClick = (key: string) => {
   selectedKeys.value = [key]
-  let routePath = `/${key}`
-  if (key === 'easy-search') {
-    routePath = '/easy-search'
-  } else if (key === 'query-builder') {
-    routePath = '/query-builder'
-  }
-  router.push(routePath)
+  router.push(`/${key}`)
 }
 </script>
 

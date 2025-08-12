@@ -3,10 +3,8 @@ import Connections from './views/Connections.vue'
 import Dashboard from './views/Dashboard.vue'
 import Indices from './views/Indices.vue'
 import Search from './views/Search.vue'
-import EasySearch from './views/EasySearch.vue'
 import Documents from './views/Documents.vue'
 import Templates from './views/Templates.vue'
-import QueryBuilder from './views/QueryBuilder.vue'
 import Import from './views/Import.vue'
 
 const router = createRouter({
@@ -32,11 +30,6 @@ const router = createRouter({
       component: Indices
     },
     {
-      path: '/easy-search',
-      name: 'easy-search',
-      component: EasySearch
-    },
-    {
       path: '/search',
       name: 'search',
       component: Search
@@ -52,14 +45,18 @@ const router = createRouter({
       component: Templates
     },
     {
-      path: '/query-builder',
-      name: 'query-builder',
-      component: QueryBuilder
-    },
-    {
       path: '/import',
       name: 'import',
       component: Import
+    },
+    // 重定向已删除的路由到统一的查询页面
+    {
+      path: '/easy-search',
+      redirect: '/search'
+    },
+    {
+      path: '/query-builder',
+      redirect: '/search'
     }
   ]
 })

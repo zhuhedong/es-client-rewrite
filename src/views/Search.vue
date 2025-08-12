@@ -1,21 +1,32 @@
 <template>
   <div class="search-page">
     <div class="page-header">
-      <h1>数据查询</h1>
-      <a-space>
-        <a-button @click="executeSearch" :loading="searchStore.loading" type="primary">
-          <template #icon>
-            <icon-search />
-          </template>
-          执行查询
-        </a-button>
-        <a-button @click="clearResults">
-          <template #icon>
-            <icon-delete />
-          </template>
-          清空结果
-        </a-button>
-      </a-space>
+      <div class="header-left">
+        <h1>📊 数据查询</h1>
+        <p class="subtitle">强大的Elasticsearch数据查询工具</p>
+      </div>
+      <div class="header-right">
+        <a-space>
+          <a-segmented 
+            v-model="queryMode" 
+            :options="queryModeOptions"
+            size="large"
+            @change="onQueryModeChange"
+          />
+          <a-button @click="executeSearch" :loading="searchStore.loading" type="primary" size="large">
+            <template #icon>
+              <icon-search />
+            </template>
+            执行查询
+          </a-button>
+          <a-button @click="clearResults" size="large">
+            <template #icon>
+              <icon-delete />
+            </template>
+            清空结果
+          </a-button>
+        </a-space>
+      </div>
     </div>
 
     <div v-if="!connectionStore.currentConnection" class="no-connection">
@@ -24,111 +35,256 @@
 
     <div v-else class="search-content">
       <a-row :gutter="24">
-        <!-- 查询配置 -->
-        <a-col :span="8">
-          <a-card title="查询配置">
+        <!-- 查询配置区域 -->
+        <a-col :span="queryMode === 'simple' ? 10 : 8">
+          <!-- 基本设置卡片 -->
+          <a-card class="config-card">
+            <template #title>
+              <div class="card-title">
+                <icon-filter />
+                <span>查询配置</span>
+              </div>
+            </template>
+            
             <a-form :model="queryForm" layout="vertical">
               <a-form-item label="索引名称" required>
                 <a-select 
                   v-model="queryForm.index" 
                   placeholder="选择索引"
                   allow-search
+                  size="large"
                   @focus="loadIndices"
+                  @change="onIndexChange"
                 >
                   <a-option 
                     v-for="index in indexStore.indices" 
                     :key="index.name" 
                     :value="index.name"
                   >
-                    {{ index.name }}
+                    <div class="index-option">
+                      <div class="index-name">{{ index.name }}</div>
+                      <div class="index-info">
+                        文档: {{ formatNumber(index.docs_count || 0) }} | 
+                        大小: {{ index.store_size || 'N/A' }}
+                      </div>
+                    </div>
                   </a-option>
                 </a-select>
               </a-form-item>
 
-              <a-form-item label="起始位置">
-                <a-input-number 
-                  v-model="queryForm.from" 
-                  :min="0" 
-                  placeholder="0"
-                  style="width: 100%"
-                />
-              </a-form-item>
-
-              <a-form-item label="返回数量">
-                <a-input-number 
-                  v-model="queryForm.size" 
-                  :min="1" 
-                  :max="10000"
-                  placeholder="10"
-                  style="width: 100%"
-                />
-              </a-form-item>
-
-              <a-form-item label="查询条件（JSON）">
-                <QueryEditor
-                  v-model="queryText"
-                  placeholder="请输入查询JSON..."
-                  height="250px"
-                  :connection-id="connectionStore.currentConnection?.id"
-                  :selected-index="queryForm.index"
-                  :show-validation="true"
-                  :format-on-blur="true"
-                  :enable-autocomplete="true"
-                  @validation-change="onQueryValidationChange"
-                />
-                <div class="autocomplete-hint">
-                  <div class="hint-icon">💡</div>
-                  <div class="hint-text">
-                    支持字段名和查询语法自动补全，按 <kbd>Ctrl+Space</kbd> 触发补全菜单
-                  </div>
-                </div>
-              </a-form-item>
-
-              <a-form-item label="排序条件（JSON，可选）">
-                <JsonEditor
-                  v-model="sortText"
-                  placeholder="请输入排序JSON（可选）..."
-                  height="120px"
-                  :show-validation="true"
-                  :format-on-blur="true"
-                  @validation-change="onSortValidationChange"
-                />
-              </a-form-item>
-
-              <!-- 快速查询模板 -->
-              <a-form-item label="快速模板">
-                <a-space direction="vertical" style="width: 100%">
-                  <a-button size="small" @click="setTemplate('match_all')" block>
-                    查询所有
-                  </a-button>
-                  <a-button size="small" @click="setTemplate('match')" block>
-                    匹配查询
-                  </a-button>
-                  <a-button size="small" @click="setTemplate('range')" block>
-                    范围查询
-                  </a-button>
-                  <a-button size="small" @click="setTemplate('bool')" block>
-                    布尔查询
-                  </a-button>
-                  <a-divider orientation="center">聚合查询</a-divider>
-                  <a-button size="small" @click="setTemplate('terms_agg')" block type="outline">
-                    分组聚合
-                  </a-button>
-                  <a-button size="small" @click="setTemplate('date_histogram')" block type="outline">
-                    时间聚合
-                  </a-button>
-                  <a-button size="small" @click="setTemplate('stats_agg')" block type="outline">
-                    统计聚合
-                  </a-button>
-                </a-space>
-              </a-form-item>
+              <a-row :gutter="12">
+                <a-col :span="12">
+                  <a-form-item label="起始位置">
+                    <a-input-number 
+                      v-model="queryForm.from" 
+                      :min="0" 
+                      placeholder="0"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="返回数量">
+                    <a-input-number 
+                      v-model="queryForm.size" 
+                      :min="1" 
+                      :max="10000"
+                      placeholder="10"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+              </a-row>
             </a-form>
+          </a-card>
+
+          <!-- 简单查询模式 -->
+          <a-card v-if="queryMode === 'simple'" class="simple-query-card" style="margin-top: 1rem;">
+            <template #title>
+              <div class="card-title">
+                <icon-search />
+                <span>简单查询</span>
+              </div>
+            </template>
+            
+            <!-- 快速搜索 -->
+            <div class="quick-search">
+              <a-input
+                v-model="simpleQuery.quickSearch"
+                placeholder="🔍 搜索所有字段..."
+                size="large"
+                @press-enter="addQuickFilter"
+              >
+                <template #suffix>
+                  <a-button 
+                    type="text" 
+                    @click="addQuickFilter"
+                    :disabled="!simpleQuery.quickSearch"
+                  >
+                    <icon-plus />
+                  </a-button>
+                </template>
+              </a-input>
+            </div>
+
+            <!-- 条件列表 -->
+            <div class="conditions-list" style="margin-top: 1rem;">
+              <div class="section-header">
+                <h4>查询条件</h4>
+                <a-button size="small" @click="showAddConditionModal" type="dashed">
+                  <template #icon>
+                    <icon-plus />
+                  </template>
+                  添加条件
+                </a-button>
+              </div>
+              
+              <div class="conditions">
+                <div 
+                  v-for="(condition, index) in simpleQuery.conditions" 
+                  :key="condition.id"
+                  class="condition-item"
+                >
+                  <div class="condition-content">
+                    <a-tag :color="getConditionTypeColor(condition.type)">
+                      {{ getConditionTypeLabel(condition.type) }}
+                    </a-tag>
+                    <span class="field-name">{{ condition.field }}</span>
+                    <span class="operator">{{ getOperatorLabel(condition.operator) }}</span>
+                    <span class="condition-value">{{ condition.value }}</span>
+                  </div>
+                  <a-button 
+                    type="text" 
+                    status="danger" 
+                    @click="removeCondition(index)"
+                    size="small"
+                  >
+                    <template #icon>
+                      <icon-close />
+                    </template>
+                  </a-button>
+                </div>
+                
+                <div v-if="simpleQuery.conditions.length === 0" class="empty-conditions">
+                  <a-empty description="暂无查询条件" :image-style="{height: '60px'}">
+                    <template #image>
+                      <icon-filter :size="60" />
+                    </template>
+                  </a-empty>
+                </div>
+              </div>
+            </div>
+
+            <!-- 排序设置 -->
+            <div class="sort-section" style="margin-top: 1rem;">
+              <div class="section-header">
+                <h4>排序设置</h4>
+                <a-button size="small" @click="addSort" type="dashed">
+                  <template #icon>
+                    <icon-plus />
+                  </template>
+                  添加排序
+                </a-button>
+              </div>
+              
+              <div class="sort-list">
+                <div 
+                  v-for="(sort, index) in simpleQuery.sort" 
+                  :key="index"
+                  class="sort-item"
+                >
+                  <a-select v-model="sort.field" placeholder="选择字段" style="flex: 1;">
+                    <a-option v-for="field in availableFields" :key="field" :value="field">
+                      {{ field }}
+                    </a-option>
+                  </a-select>
+                  <a-select v-model="sort.order" style="width: 100px;">
+                    <a-option value="asc">升序</a-option>
+                    <a-option value="desc">降序</a-option>
+                  </a-select>
+                  <a-button type="text" status="danger" @click="removeSort(index)">
+                    <template #icon>
+                      <icon-close />
+                    </template>
+                  </a-button>
+                </div>
+              </div>
+            </div>
+          </a-card>
+
+          <!-- 高级查询模式 -->
+          <a-card v-else class="advanced-query-card" style="margin-top: 1rem;">
+            <template #title>
+              <div class="card-title">
+                <icon-code />
+                <span>高级查询</span>
+              </div>
+            </template>
+            
+            <a-form-item label="查询条件（JSON）">
+              <QueryEditor
+                v-model="queryText"
+                placeholder="请输入查询JSON..."
+                height="300px"
+                :connection-id="connectionStore.currentConnection?.id"
+                :selected-index="queryForm.index"
+                :show-validation="true"
+                :format-on-blur="true"
+                :enable-autocomplete="true"
+                @validation-change="onQueryValidationChange"
+              />
+              <div class="autocomplete-hint">
+                <div class="hint-icon">💡</div>
+                <div class="hint-text">
+                  支持字段名和查询语法自动补全，按 <kbd>Ctrl+Space</kbd> 触发补全菜单
+                </div>
+              </div>
+            </a-form-item>
+
+            <a-form-item label="排序条件（JSON，可选）">
+              <JsonEditor
+                v-model="sortText"
+                placeholder="请输入排序JSON（可选）..."
+                height="120px"
+                :show-validation="true"
+                :format-on-blur="true"
+                @validation-change="onSortValidationChange"
+              />
+            </a-form-item>
+
+            <!-- 快速查询模板 -->
+            <a-form-item label="快速模板">
+              <a-space direction="vertical" style="width: 100%">
+                <a-button size="small" @click="setTemplate('match_all')" block>
+                  查询所有
+                </a-button>
+                <a-button size="small" @click="setTemplate('match')" block>
+                  匹配查询
+                </a-button>
+                <a-button size="small" @click="setTemplate('range')" block>
+                  范围查询
+                </a-button>
+                <a-button size="small" @click="setTemplate('bool')" block>
+                  布尔查询
+                </a-button>
+                <a-divider orientation="center">聚合查询</a-divider>
+                <a-button size="small" @click="setTemplate('terms_agg')" block type="outline">
+                  分组聚合
+                </a-button>
+                <a-button size="small" @click="setTemplate('date_histogram')" block type="outline">
+                  时间聚合
+                </a-button>
+                <a-button size="small" @click="setTemplate('stats_agg')" block type="outline">
+                  统计聚合
+                </a-button>
+              </a-space>
+            </a-form-item>
           </a-card>
         </a-col>
 
         <!-- 查询结果 -->
-        <a-col :span="16">
-          <a-card>
+        <a-col :span="queryMode === 'simple' ? 14 : 16">
+          <a-card class="results-card">
             <template #title>
               <div class="result-title">
                 查询结果
@@ -244,6 +400,80 @@
           </a-card>
         </a-col>
       </a-row>
+
+      <!-- 添加条件弹窗 -->
+      <a-modal
+        v-model:visible="addConditionModalVisible"
+        title="添加查询条件"
+        @ok="handleAddCondition"
+        @cancel="resetConditionForm"
+        :ok-button-props="{ disabled: !isConditionFormValid }"
+        width="600px"
+      >
+        <a-form :model="conditionForm" layout="vertical">
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="字段名称" required>
+                <a-select 
+                  v-model="conditionForm.field" 
+                  placeholder="选择字段"
+                  allow-search
+                  @change="onFieldChange"
+                >
+                  <a-option v-for="field in availableFields" :key="field" :value="field">
+                    {{ field }}
+                  </a-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="条件类型" required>
+                <a-select v-model="conditionForm.type" @change="onConditionTypeChange">
+                  <a-option value="match">匹配查询</a-option>
+                  <a-option value="term">精确匹配</a-option>
+                  <a-option value="range">范围查询</a-option>
+                  <a-option value="wildcard">通配符查询</a-option>
+                  <a-option value="exists">字段存在</a-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+          </a-row>
+          
+          <a-row :gutter="16" v-if="conditionForm.type !== 'exists'">
+            <a-col :span="12">
+              <a-form-item label="操作符" required>
+                <a-select v-model="conditionForm.operator">
+                  <a-option v-for="op in availableOperators" :key="op.value" :value="op.value">
+                    {{ op.label }}
+                  </a-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="值" required>
+                <a-input 
+                  v-if="conditionForm.type !== 'range'"
+                  v-model="conditionForm.value" 
+                  placeholder="输入值"
+                />
+                <div v-else class="range-inputs">
+                  <a-input 
+                    v-model="conditionForm.rangeFrom" 
+                    placeholder="最小值"
+                    style="width: 45%"
+                  />
+                  <span style="width: 10%; text-align: center;">-</span>
+                  <a-input 
+                    v-model="conditionForm.rangeTo" 
+                    placeholder="最大值"
+                    style="width: 45%"
+                  />
+                </div>
+              </a-form-item>
+            </a-col>
+          </a-row>
+        </a-form>
+      </a-modal>
     </div>
   </div>
 </template>
@@ -253,7 +483,14 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useConnectionStore } from '../stores/connection'
 import { useIndexStore } from '../stores/index'
 import { useSearchStore } from '../stores/search'
-import { IconSearch, IconDelete } from '@arco-design/web-vue/es/icon'
+import { 
+  IconSearch, 
+  IconDelete, 
+  IconFilter, 
+  IconCode, 
+  IconPlus, 
+  IconClose 
+} from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
 import VisualizationPanel from '../components/VisualizationPanel.vue'
 import JsonEditor from '../components/JsonEditor.vue'
@@ -265,23 +502,51 @@ const connectionStore = useConnectionStore()
 const indexStore = useIndexStore()
 const searchStore = useSearchStore()
 
+// 查询模式
+const queryMode = ref('simple')
+const queryModeOptions = [
+  { label: '🎯 简单查询', value: 'simple' },
+  { label: '⚡ 高级查询', value: 'advanced' }
+]
+
 const queryForm = ref({
   index: '',
   from: 0,
   size: 10
 })
 
+// 高级查询相关
 const queryText = ref('{\n  "match_all": {}\n}')
 const sortText = ref('')
-const viewMode = ref('pagination') // 'virtual' | 'pagination'
-
-// JSON validation states
 const queryValid = ref(true)
 const sortValid = ref(true)
 const queryValidationError = ref('')
 const sortValidationError = ref('')
 
+// 简单查询相关
+const simpleQuery = ref({
+  quickSearch: '',
+  conditions: [] as any[],
+  sort: [] as any[]
+})
+
+// 添加条件弹窗
+const addConditionModalVisible = ref(false)
+const conditionForm = ref({
+  field: '',
+  type: 'match',
+  operator: 'eq',
+  value: '',
+  rangeFrom: '',
+  rangeTo: ''
+})
+
+// 可用字段
+const availableFields = ref<string[]>([])
+
+// 搜索结果
 const searchResult = computed(() => searchStore.searchResult)
+const viewMode = ref('pagination')
 
 // 虚拟滚动的数据管理
 const allData = ref<any[]>([])
@@ -308,7 +573,7 @@ const hasAggregations = computed(() => {
          Object.keys(searchResult.value.aggregations).length > 0
 })
 
-// 可视化组件的key，用于强制重新渲染
+// 可视化组件的key
 const visualizationKey = ref(0)
 
 // 计算当前页数
@@ -316,13 +581,53 @@ const currentPage = computed(() => {
   return Math.floor((queryForm.value.from || 0) / (queryForm.value.size || 10)) + 1
 })
 
+// 条件表单验证
+const isConditionFormValid = computed(() => {
+  if (!conditionForm.value.field || !conditionForm.value.type) return false
+  if (conditionForm.value.type === 'exists') return true
+  if (conditionForm.value.type === 'range') {
+    return conditionForm.value.rangeFrom && conditionForm.value.rangeTo
+  }
+  return conditionForm.value.value
+})
+
+// 可用操作符
+const availableOperators = computed(() => {
+  const type = conditionForm.value.type
+  switch (type) {
+    case 'match':
+    case 'wildcard':
+      return [
+        { label: '包含', value: 'contains' },
+        { label: '不包含', value: 'not_contains' }
+      ]
+    case 'term':
+      return [
+        { label: '等于', value: 'eq' },
+        { label: '不等于', value: 'neq' }
+      ]
+    case 'range':
+      return [
+        { label: '范围', value: 'range' }
+      ]
+    default:
+      return [{ label: '等于', value: 'eq' }]
+  }
+})
+
+// 数字格式化
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+  return num?.toString() || '0'
+}
+
 // 查询模板
 const templates = {
   match_all: '{\n  "match_all": {}\n}',
   match: '{\n  "match": {\n    "field_name": "search_value"\n  }\n}',
   range: '{\n  "range": {\n    "field_name": {\n      "gte": 10,\n      "lte": 20\n    }\n  }\n}',
   bool: '{\n  "bool": {\n    "must": [\n      { "match": { "field1": "value1" } }\n    ],\n    "filter": [\n      { "term": { "field2": "value2" } }\n    ]\n  }\n}',
-  // 添加聚合查询模板
   terms_agg: '{\n  "match_all": {},\n  "aggs": {\n    "field_terms": {\n      "terms": {\n        "field": "field_name.keyword",\n        "size": 10\n      }\n    }\n  }\n}',
   date_histogram: '{\n  "match_all": {},\n  "aggs": {\n    "date_trend": {\n      "date_histogram": {\n        "field": "@timestamp",\n        "calendar_interval": "day"\n      }\n    }\n  }\n}',
   stats_agg: '{\n  "match_all": {},\n  "aggs": {\n    "field_stats": {\n      "stats": {\n        "field": "numeric_field"\n      }\n    }\n  }\n}'
@@ -338,7 +643,9 @@ onMounted(() => {
     queryForm.value.index = searchStore.query.index
     queryForm.value.from = searchStore.query.from || 0
     queryForm.value.size = searchStore.query.size || 10
-    queryText.value = JSON.stringify(searchStore.query.query, null, 2)
+    if (queryMode.value === 'advanced') {
+      queryText.value = JSON.stringify(searchStore.query.query, null, 2)
+    }
   }
 })
 
@@ -350,6 +657,249 @@ watch(
     }
   }
 )
+
+// 新增方法
+
+// 查询模式切换
+const onQueryModeChange = (mode: string) => {
+  queryMode.value = mode
+  if (mode === 'simple') {
+    // 切换到简单模式时，尝试解析当前的JSON查询
+    try {
+      const query = JSON.parse(queryText.value)
+      // 简单的转换逻辑
+      if (query.match_all) {
+        simpleQuery.value.conditions = []
+      }
+    } catch (e) {
+      // 解析失败时重置简单查询
+      simpleQuery.value = {
+        quickSearch: '',
+        conditions: [],
+        sort: []
+      }
+    }
+  } else {
+    // 切换到高级模式时，将简单查询转换为JSON
+    if (simpleQuery.value.conditions.length > 0) {
+      const query = buildQueryFromConditions()
+      queryText.value = JSON.stringify(query, null, 2)
+    }
+  }
+}
+
+// 索引变化时加载字段映射
+const onIndexChange = async (indexName: string) => {
+  if (!connectionStore.currentConnection || !indexName) return
+  
+  try {
+    const mapping = await Api.getIndexMapping(connectionStore.currentConnection.id, indexName)
+    // 解析字段映射
+    availableFields.value = extractFieldsFromMapping(mapping)
+  } catch (error) {
+    console.error('Failed to load field mapping:', error)
+    availableFields.value = []
+  }
+}
+
+// 从映射中提取字段
+const extractFieldsFromMapping = (mapping: any): string[] => {
+  const fields: string[] = []
+  
+  const traverse = (obj: any, prefix = '') => {
+    for (const key in obj) {
+      if (key === 'properties') {
+        traverse(obj[key], prefix)
+      } else if (typeof obj[key] === 'object' && obj[key].type) {
+        const fieldName = prefix ? `${prefix}.${key}` : key
+        fields.push(fieldName)
+        if (obj[key].properties) {
+          traverse(obj[key].properties, fieldName)
+        }
+      }
+    }
+  }
+  
+  if (mapping && typeof mapping === 'object') {
+    Object.keys(mapping).forEach(indexName => {
+      if (mapping[indexName] && mapping[indexName].mappings) {
+        traverse(mapping[indexName].mappings)
+      }
+    })
+  }
+  
+  return [...new Set(fields)].sort()
+}
+
+// 快速搜索
+const addQuickFilter = () => {
+  if (!simpleQuery.value.quickSearch.trim()) return
+  
+  const condition = {
+    id: Date.now().toString(),
+    field: '_all',
+    type: 'match',
+    operator: 'contains',
+    value: simpleQuery.value.quickSearch.trim()
+  }
+  
+  simpleQuery.value.conditions.push(condition)
+  simpleQuery.value.quickSearch = ''
+}
+
+// 显示添加条件弹窗
+const showAddConditionModal = () => {
+  resetConditionForm()
+  addConditionModalVisible.value = true
+}
+
+// 重置条件表单
+const resetConditionForm = () => {
+  conditionForm.value = {
+    field: '',
+    type: 'match',
+    operator: 'eq',
+    value: '',
+    rangeFrom: '',
+    rangeTo: ''
+  }
+}
+
+// 处理添加条件
+const handleAddCondition = () => {
+  if (!isConditionFormValid.value) return
+  
+  const condition = {
+    id: Date.now().toString(),
+    field: conditionForm.value.field,
+    type: conditionForm.value.type,
+    operator: conditionForm.value.operator,
+    value: conditionForm.value.type === 'range' 
+      ? `${conditionForm.value.rangeFrom} - ${conditionForm.value.rangeTo}`
+      : conditionForm.value.value
+  }
+  
+  simpleQuery.value.conditions.push(condition)
+  addConditionModalVisible.value = false
+  resetConditionForm()
+}
+
+// 移除条件
+const removeCondition = (index: number) => {
+  simpleQuery.value.conditions.splice(index, 1)
+}
+
+// 添加排序
+const addSort = () => {
+  simpleQuery.value.sort.push({
+    field: '',
+    order: 'desc'
+  })
+}
+
+// 移除排序
+const removeSort = (index: number) => {
+  simpleQuery.value.sort.splice(index, 1)
+}
+
+// 字段变化
+const onFieldChange = () => {
+  conditionForm.value.operator = availableOperators.value[0]?.value || 'eq'
+}
+
+// 条件类型变化
+const onConditionTypeChange = () => {
+  conditionForm.value.operator = availableOperators.value[0]?.value || 'eq'
+  conditionForm.value.value = ''
+  conditionForm.value.rangeFrom = ''
+  conditionForm.value.rangeTo = ''
+}
+
+// 获取条件类型颜色
+const getConditionTypeColor = (type: string) => {
+  const colors = {
+    match: 'blue',
+    term: 'green',
+    range: 'orange',
+    wildcard: 'purple',
+    exists: 'cyan'
+  }
+  return colors[type as keyof typeof colors] || 'gray'
+}
+
+// 获取条件类型标签
+const getConditionTypeLabel = (type: string) => {
+  const labels = {
+    match: '匹配',
+    term: '精确',
+    range: '范围',
+    wildcard: '通配',
+    exists: '存在'
+  }
+  return labels[type as keyof typeof labels] || type
+}
+
+// 获取操作符标签
+const getOperatorLabel = (operator: string) => {
+  const labels = {
+    contains: '包含',
+    not_contains: '不包含',
+    eq: '等于',
+    neq: '不等于',
+    range: '范围'
+  }
+  return labels[operator as keyof typeof labels] || operator
+}
+
+// 从简单查询条件构建Elasticsearch查询
+const buildQueryFromConditions = () => {
+  if (simpleQuery.value.conditions.length === 0) {
+    return { match_all: {} }
+  }
+  
+  const must: any[] = []
+  const filter: any[] = []
+  
+  simpleQuery.value.conditions.forEach(condition => {
+    switch (condition.type) {
+      case 'match':
+        if (condition.field === '_all') {
+          must.push({ multi_match: { query: condition.value, fields: ['*'] } })
+        } else {
+          must.push({ match: { [condition.field]: condition.value } })
+        }
+        break
+      case 'term':
+        const termQuery = { term: { [condition.field + '.keyword']: condition.value } }
+        if (condition.operator === 'neq') {
+          filter.push({ bool: { must_not: termQuery } })
+        } else {
+          filter.push(termQuery)
+        }
+        break
+      case 'range':
+        const [from, to] = condition.value.split(' - ')
+        filter.push({ range: { [condition.field]: { gte: from, lte: to } } })
+        break
+      case 'wildcard':
+        must.push({ wildcard: { [condition.field + '.keyword']: `*${condition.value}*` } })
+        break
+      case 'exists':
+        filter.push({ exists: { field: condition.field } })
+        break
+    }
+  })
+  
+  if (must.length === 0 && filter.length === 0) {
+    return { match_all: {} }
+  }
+  
+  const query: any = { bool: {} }
+  if (must.length > 0) query.bool.must = must
+  if (filter.length > 0) query.bool.filter = filter
+  
+  return query
+}
 
 const loadIndices = async () => {
   if (!connectionStore.currentConnection) return
@@ -367,39 +917,52 @@ const executeSearch = async () => {
     return
   }
 
-  // Check JSON validation before executing
-  if (!queryValid.value) {
-    Message.error('查询条件JSON格式错误：' + queryValidationError.value)
-    return
-  }
-
-  if (sortText.value.trim() && !sortValid.value) {
-    Message.error('排序条件JSON格式错误：' + sortValidationError.value)
-    return
-  }
+  let finalQuery: any
+  let sort: any = undefined
 
   try {
-    let query
-    try {
-      query = JSON.parse(queryText.value)
-    } catch (error) {
-      Message.error('查询条件JSON格式错误')
-      return
-    }
-
-    let sort = undefined
-    if (sortText.value.trim()) {
-      try {
-        sort = JSON.parse(sortText.value)
-      } catch (error) {
-        Message.error('排序条件JSON格式错误')
+    // 根据查询模式构建查询
+    if (queryMode.value === 'simple') {
+      finalQuery = buildQueryFromConditions()
+      
+      // 构建排序
+      if (simpleQuery.value.sort.length > 0) {
+        sort = simpleQuery.value.sort
+          .filter(s => s.field && s.order)
+          .map(s => ({ [s.field]: { order: s.order } }))
+      }
+    } else {
+      // 高级模式：验证JSON格式
+      if (!queryValid.value) {
+        Message.error('查询条件JSON格式错误：' + queryValidationError.value)
         return
+      }
+
+      if (sortText.value.trim() && !sortValid.value) {
+        Message.error('排序条件JSON格式错误：' + sortValidationError.value)
+        return
+      }
+
+      try {
+        finalQuery = JSON.parse(queryText.value)
+      } catch (error) {
+        Message.error('查询条件JSON格式错误')
+        return
+      }
+
+      if (sortText.value.trim()) {
+        try {
+          sort = JSON.parse(sortText.value)
+        } catch (error) {
+          Message.error('排序条件JSON格式错误')
+          return
+        }
       }
     }
 
     const searchQuery = {
       index: queryForm.value.index,
-      query,
+      query: finalQuery,
       from: queryForm.value.from,
       size: queryForm.value.size,
       sort
@@ -518,6 +1081,7 @@ watch(viewMode, (newMode) => {
 <style scoped>
 .search-page {
   height: 100%;
+  padding: 1rem;
 }
 
 .page-header {
@@ -525,19 +1089,24 @@ watch(viewMode, (newMode) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--gray-200);
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.page-header h1 {
-  margin: 0;
-  font-size: 1.875rem;
+.header-left h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
   font-weight: 700;
-  color: var(--gray-900);
-  background: linear-gradient(135deg, var(--primary-color), var(--warning-color));
+  background: linear-gradient(135deg, #1890ff, #722ed1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-3);
+  font-size: 0.875rem;
 }
 
 .no-connection {
@@ -545,78 +1114,176 @@ watch(viewMode, (newMode) => {
   justify-content: center;
   align-items: center;
   height: 400px;
-  background: linear-gradient(135deg, var(--gray-50), white);
-  border-radius: var(--radius-xl);
-  border: 2px dashed var(--gray-300);
+  background: var(--color-fill-1);
+  border-radius: 12px;
+  border: 2px dashed var(--color-border);
 }
 
 .search-content {
   height: calc(100% - 120px);
 }
 
-.result-title {
+/* 卡片样式 */
+.config-card,
+.simple-query-card,
+.advanced-query-card,
+.results-card {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+/* 索引选项样式 */
+.index-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.index-name {
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.index-info {
+  font-size: 0.75rem;
+  color: var(--color-text-3);
+}
+
+/* 简单查询相关样式 */
+.quick-search {
+  margin-bottom: 1rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 条件项样式 */
+.condition-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+}
+
+.condition-item:hover {
+  background: var(--color-fill-2);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.condition-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.field-name {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.operator {
+  color: var(--color-text-3);
+  font-size: 0.875rem;
+}
+
+.condition-value {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+  background: var(--color-fill-2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-conditions {
+  padding: 2rem;
+  text-align: center;
+}
+
+/* 排序项样式 */
+.sort-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background: var(--color-fill-1);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+/* 弹窗样式 */
+.range-inputs {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
+/* 结果相关样式 */
+.result-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
 .result-stats {
-  color: var(--gray-600);
+  color: var(--color-text-3);
   font-size: 0.875rem;
   font-weight: 500;
   padding: 0.25rem 0.75rem;
-  background: var(--gray-100);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-200);
+  background: var(--color-fill-2);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
 }
 
-.no-result {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  background: linear-gradient(135deg, var(--gray-50), white);
-  border-radius: var(--radius-xl);
-  border: 2px dashed var(--gray-300);
+.table-controls {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
 }
 
-.source-data {
-  background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
-  padding: 1rem;
-  border-radius: var(--radius-lg);
-  font-size: 0.75rem;
-  line-height: 1.6;
-  max-height: 200px;
-  overflow: auto;
-  margin: 0;
-  border: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.json-result {
-  background: linear-gradient(135deg, var(--gray-900), var(--gray-800));
-  color: #e2e8f0;
-  padding: 1.5rem;
-  border-radius: var(--radius-lg);
-  max-height: 600px;
-  overflow: auto;
+.data-info {
+  color: var(--color-text-3);
   font-size: 0.875rem;
-  line-height: 1.6;
-  margin: 0;
-  border: 1px solid var(--gray-700);
-  box-shadow: var(--shadow-md);
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.pagination-wrapper {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: center;
-  padding: 1rem;
-  background: var(--gray-50);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-200);
+  font-weight: 500;
 }
 
 /* 自动补全提示样式 */
@@ -628,14 +1295,9 @@ watch(viewMode, (newMode) => {
   padding: 0.5rem 0.75rem;
   background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
   border: 1px solid #0ea5e9;
-  border-radius: var(--radius-lg);
+  border-radius: 8px;
   font-size: 0.875rem;
   color: #0369a1;
-}
-
-.hint-icon {
-  font-size: 1rem;
-  flex-shrink: 0;
 }
 
 .hint-text kbd {
@@ -643,138 +1305,29 @@ watch(viewMode, (newMode) => {
   color: white;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.75rem;
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* 现代化卡片样式 */
-:deep(.arco-card) {
-  background: linear-gradient(135deg, white, var(--gray-50));
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-xl) !important;
-  box-shadow: var(--shadow) !important;
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-:deep(.arco-card:hover) {
-  box-shadow: var(--shadow-lg) !important;
-  transform: translateY(-2px);
-}
-
-:deep(.arco-card-header) {
-  background: linear-gradient(135deg, var(--gray-50), white) !important;
-  color: var(--gray-800) !important;
-  border-bottom: 1px solid var(--gray-200) !important;
-  padding: 1.25rem 1.5rem !important;
-}
-
-:deep(.arco-card-header-title) {
-  color: var(--gray-800) !important;
-  font-weight: 700 !important;
-  font-size: 1.125rem !important;
-}
-
-:deep(.arco-card-body) {
-  padding: 1.5rem !important;
-}
-
-/* 现代化表单样式 */
-:deep(.arco-form-item-label-text) {
-  font-weight: 600 !important;
-  color: var(--gray-700) !important;
-  font-size: 0.875rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.025em !important;
-}
-
-:deep(.arco-textarea) {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
-  font-size: 0.875rem !important;
-  line-height: 1.6 !important;
-}
-
-/* 现代化标签页样式 */
-:deep(.arco-tabs-nav) {
-  background: var(--gray-50) !important;
-  padding: 0.5rem !important;
-  border-radius: var(--radius-lg) !important;
-  margin-bottom: 1.5rem !important;
-}
-
-:deep(.arco-tabs-tab) {
-  border-radius: var(--radius) !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-}
-
-:deep(.arco-tabs-tab-active) {
-  background: white !important;
-  color: var(--primary-color) !important;
-  box-shadow: var(--shadow-sm) !important;
-}
-
-/* 快速模板按钮 */
-:deep(.arco-space-vertical .arco-btn) {
-  justify-content: flex-start !important;
-  text-align: left !important;
-  background: var(--gray-50) !important;
-  border: 1px solid var(--gray-200) !important;
-  color: var(--gray-700) !important;
-  font-weight: 500 !important;
-}
-
-:deep(.arco-space-vertical .arco-btn:hover) {
-  background: var(--primary-color) !important;
-  color: white !important;
-  border-color: var(--primary-color) !important;
-  transform: translateX(4px) !important;
-}
-
 /* 分页样式 */
-:deep(.arco-pagination) {
-  gap: 0.5rem !important;
-}
-
-:deep(.arco-pagination-item) {
-  border-radius: var(--radius) !important;
-  border: 1px solid var(--gray-300) !important;
-  font-weight: 500 !important;
-  transition: all 0.2s ease !important;
-}
-
-:deep(.arco-pagination-item:hover) {
-  border-color: var(--primary-color) !important;
-  color: var(--primary-color) !important;
-  transform: translateY(-1px) !important;
-}
-
-:deep(.arco-pagination-item-active) {
-  background: var(--primary-color) !important;
-  border-color: var(--primary-color) !important;
-  color: white !important;
-}
-
-/* 表格控制区域 */
-.table-controls {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  background: var(--gray-50);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-200);
-}
-
-.data-info {
-  color: var(--color-text-3);
-  font-size: 0.875rem;
-  font-weight: 500;
+.pagination-wrapper {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
 }
 
 /* 虚拟滚动相关样式 */
 .doc-id {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.75rem;
   color: var(--color-text-2);
   background: var(--color-fill-2);
@@ -787,13 +1340,13 @@ watch(viewMode, (newMode) => {
 }
 
 .score-badge {
-  background: linear-gradient(135deg, var(--primary-color), var(--warning-color));
+  background: linear-gradient(135deg, var(--color-primary), #722ed1);
   color: white;
   padding: 0.125rem 0.5rem;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'Monaco', 'Menlo', monospace;
 }
 
 .source-preview {
@@ -803,7 +1356,7 @@ watch(viewMode, (newMode) => {
 }
 
 .source-preview pre {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.75rem;
   line-height: 1.4;
   color: var(--color-text-2);
@@ -812,22 +1365,56 @@ watch(viewMode, (newMode) => {
   word-break: break-word;
 }
 
-/* 分页样式优化 */
-.pagination-wrapper {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: center;
+.source-data {
+  background: var(--color-fill-1);
   padding: 1rem;
-  background: var(--gray-50);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-200);
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  max-height: 200px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  font-family: 'Monaco', 'Menlo', monospace;
 }
 
-/* 无限滚动加载指示器 */
-.virtual-scroll-container {
-  position: relative;
+.json-result {
+  background: #1e1e1e;
+  color: #e2e8f0;
+  padding: 1.5rem;
+  border-radius: 8px;
+  max-height: 600px;
+  overflow: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  border: 1px solid #374151;
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .autocomplete-hint {
+    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    border-color: #3b82f6;
+    color: #93c5fd;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .header-left h1 {
+    font-size: 1.5rem;
+  }
+  
+  .search-content .arco-col {
+    margin-bottom: 1rem;
+  }
 }
 </style>
