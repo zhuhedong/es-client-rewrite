@@ -567,7 +567,7 @@ const containerHeight = ref(500)
 
 // 更新容器高度
 const updateContainerHeight = () => {
-  containerHeight.value = Math.max(500, window.innerHeight - 300)
+  containerHeight.value = Math.max(600, window.innerHeight - 250)
 }
 
 // 查询模式
@@ -1353,25 +1353,27 @@ watch(viewMode, (newMode) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 .header-left h1 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
   background: linear-gradient(135deg, #1890ff, #722ed1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.2;
 }
 
 .subtitle {
   margin: 0;
   color: var(--color-text-3);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
 }
 
 .no-connection {
@@ -1385,10 +1387,10 @@ watch(viewMode, (newMode) => {
 }
 
 .search-content {
-  height: calc(100vh - 150px);
+  height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   overflow: hidden;
 }
 
@@ -1400,7 +1402,7 @@ watch(viewMode, (newMode) => {
 /* 结果行样式 */
 .results-row {
   flex: 1;
-  min-height: 500px;
+  min-height: 600px;
   overflow: hidden;
 }
 
@@ -1408,12 +1410,12 @@ watch(viewMode, (newMode) => {
 .config-card,
 .simple-query-card,
 .advanced-query-card {
-  border-radius: 12px !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
   height: 100%;
-  min-height: 300px;
-  max-height: 350px;
+  min-height: 200px;
+  max-height: 240px;
   display: flex;
   flex-direction: column;
 }
@@ -1430,14 +1432,15 @@ watch(viewMode, (newMode) => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 250px;
+  min-height: 160px;
   overflow-y: auto;
+  padding: 0.75rem !important;
 }
 
 /* 查询结果区域样式 */
 .results-card {
-  border-radius: 12px !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
   height: 100%;
   overflow: hidden;
@@ -1476,9 +1479,10 @@ watch(viewMode, (newMode) => {
 .card-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
   font-weight: 600;
   color: var(--color-text-1);
+  font-size: 0.875rem;
 }
 
 /* 索引选项样式 */
@@ -1507,12 +1511,12 @@ watch(viewMode, (newMode) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .section-header h4 {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-text-2);
   text-transform: uppercase;
@@ -1524,10 +1528,10 @@ watch(viewMode, (newMode) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.375rem;
   background: var(--color-fill-1);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
   transition: all 0.2s ease;
 }
@@ -1542,7 +1546,7 @@ watch(viewMode, (newMode) => {
 .condition-content {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
   flex: 1;
 }
 
@@ -1579,11 +1583,11 @@ watch(viewMode, (newMode) => {
 .sort-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
+  gap: 0.375rem;
+  margin-bottom: 0.375rem;
+  padding: 0.375rem;
   background: var(--color-fill-1);
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid var(--color-border);
 }
 
