@@ -309,6 +309,30 @@
                         <a-radio value="virtual">虚拟滚动</a-radio>
                         <a-radio value="pagination">分页模式</a-radio>
                       </a-radio-group>
+                      <a-divider type="vertical" />
+                      <span>显示字段：</span>
+                      <a-select
+                        v-model="selectedFields"
+                        multiple
+                        :max-tag-count="3"
+                        placeholder="选择要显示的字段"
+                        style="min-width: 200px"
+                        allow-clear
+                      >
+                        <a-option 
+                          v-for="field in extractFieldsFromResults(searchResult.hits)" 
+                          :key="field" 
+                          :value="field"
+                        >
+                          {{ field }}
+                        </a-option>
+                      </a-select>
+                      <a-button size="small" @click="selectAllFields" type="outline">
+                        全选
+                      </a-button>
+                      <a-button size="small" @click="clearFieldSelection" type="outline">
+                        清空
+                      </a-button>
                       <span v-if="searchResult" class="data-info">
                         当前显示 {{ searchResult.hits.length }} 条，共 {{ searchResult.total }} 条记录
                       </span>
@@ -328,10 +352,10 @@
                     @row-click="onRowClick"
                   >
                     <template #_index="{ record }">
-                      {{ record._index }}
+                      <span class="metadata-value">{{ record._index }}</span>
                     </template>
                     <template #_type="{ record }">
-                      {{ record._type }}
+                      <span class="metadata-value">{{ record._type || '-' }}</span>
                     </template>
                     <template #_id="{ record }">
                       <span class="doc-id">{{ record._id }}</span>
@@ -339,9 +363,12 @@
                     <template #_score="{ record }">
                       <span class="score-badge">{{ record._score?.toFixed(3) || 'N/A' }}</span>
                     </template>
-                    <template #_source="{ record }">
-                      <div class="source-preview">
-                        <pre>{{ JSON.stringify(record._source, null, 2).slice(0, 200) }}...</pre>
+                    <!-- 动态字段插槽 -->
+                    <template v-for="field in (selectedFields.length > 0 ? selectedFields.filter(f => searchResult?.hits && extractFieldsFromResults(searchResult.hits).includes(f)) : (searchResult?.hits ? extractFieldsFromResults(searchResult.hits).slice(0, 10) : []))" :key="`_source.${field}`" #[`_source.${field}`]="{ record }">
+                      <div class="field-cell">
+                        <span class="field-value" :title="formatFieldValue(getFieldValue(record._source, field))">
+                          {{ formatFieldValue(getFieldValue(record._source, field)) }}
+                        </span>
                       </div>
                     </template>
                   </VirtualTable>
@@ -355,13 +382,42 @@
                     size="small"
                   >
                     <template #columns>
-                      <a-table-column title="索引" data-index="_index" :width="120" />
-                      <a-table-column title="类型" data-index="_type" :width="100" />
-                      <a-table-column title="ID" data-index="_id" :width="150" />
-                      <a-table-column title="评分" data-index="_score" :width="80" />
-                      <a-table-column title="数据" :width="400">
+                      <a-table-column title="索引" data-index="_index" :width="120">
                         <template #cell="{ record }">
-                          <pre class="source-data">{{ JSON.stringify(record._source, null, 2) }}</pre>
+                          <span class="metadata-value">{{ record._index }}</span>
+                        </template>
+                      </a-table-column>
+                      <a-table-column title="类型" data-index="_type" :width="100">
+                        <template #cell="{ record }">
+                          <span class="metadata-value">{{ record._type || '-' }}</span>
+                        </template>
+                      </a-table-column>
+                      <a-table-column title="ID" data-index="_id" :width="180">
+                        <template #cell="{ record }">
+                          <span class="doc-id">{{ record._id }}</span>
+                        </template>
+                      </a-table-column>
+                      <a-table-column title="评分" data-index="_score" :width="80">
+                        <template #cell="{ record }">
+                          <span class="score-badge">{{ record._score?.toFixed(3) || 'N/A' }}</span>
+                        </template>
+                      </a-table-column>
+                      <!-- 动态字段列 -->
+                      <a-table-column 
+                        v-for="field in (selectedFields.length > 0 ? selectedFields.filter(f => searchResult?.hits && extractFieldsFromResults(searchResult.hits).includes(f)) : (searchResult?.hits ? extractFieldsFromResults(searchResult.hits).slice(0, 10) : []))" 
+                        :key="field"
+                        :title="field"
+                        :width="parseInt(getOptimalColumnWidth(field, searchResult?.hits || []))"
+                      >
+                        <template #cell="{ record }">
+                          <div class="field-cell">
+                            <span 
+                              class="field-value" 
+                              :title="formatFieldValue(getFieldValue(record._source, field))"
+                            >
+                              {{ formatFieldValue(getFieldValue(record._source, field)) }}
+                            </span>
+                          </div>
                         </template>
                       </a-table-column>
                     </template>
@@ -548,18 +604,49 @@ const availableFields = ref<string[]>([])
 const searchResult = computed(() => searchStore.searchResult)
 const viewMode = ref('pagination')
 
+// 字段选择
+const selectedFields = ref<string[]>([])
+
 // 虚拟滚动的数据管理
 const allData = ref<any[]>([])
 const isLoadingMore = ref(false)
 
-// 表格列定义
-const tableColumns = [
-  { key: '_index', title: '索引', width: '120px' },
-  { key: '_type', title: '类型', width: '100px' },
-  { key: '_id', title: 'ID', width: '150px' },
-  { key: '_score', title: '评分', width: '80px' },
-  { key: '_source', title: '数据', width: '400px' }
-]
+// 动态表格列定义
+const tableColumns = computed(() => {
+  if (!searchResult.value || !searchResult.value.hits || searchResult.value.hits.length === 0) {
+    return [
+      { key: '_index', title: '索引', width: '120px' },
+      { key: '_type', title: '类型', width: '100px' },
+      { key: '_id', title: 'ID', width: '150px' },
+      { key: '_score', title: '评分', width: '80px' }
+    ]
+  }
+
+  // 从搜索结果中提取所有字段
+  const allSourceFields = extractFieldsFromResults(searchResult.value.hits)
+  
+  // 根据用户选择决定显示哪些字段
+  const fieldsToShow = selectedFields.value.length > 0 
+    ? selectedFields.value.filter(field => allSourceFields.includes(field))
+    : allSourceFields.slice(0, 10) // 默认显示前10个字段
+  
+  // 基础元数据列
+  const baseColumns = [
+    { key: '_index', title: '索引', width: '120px' },
+    { key: '_type', title: '类型', width: '100px' },
+    { key: '_id', title: 'ID', width: '180px' },
+    { key: '_score', title: '评分', width: '80px' }
+  ]
+  
+  // 动态字段列
+  const fieldColumns = fieldsToShow.map(field => ({
+    key: `_source.${field}`,
+    title: field,
+    width: getOptimalColumnWidth(field, searchResult.value!.hits)
+  }))
+  
+  return [...baseColumns, ...fieldColumns]
+})
 
 // 是否有更多数据
 const hasMoreData = computed(() => {
@@ -729,6 +816,116 @@ const extractFieldsFromMapping = (mapping: any): string[] => {
   }
   
   return [...new Set(fields)].sort()
+}
+
+// 从搜索结果中提取所有字段
+const extractFieldsFromResults = (hits: any[]): string[] => {
+  const fieldSet = new Set<string>()
+  
+  const traverseObject = (obj: any, prefix = '') => {
+    if (!obj || typeof obj !== 'object') return
+    
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const fieldPath = prefix ? `${prefix}.${key}` : key
+        const value = obj[key]
+        
+        if (value !== null && value !== undefined) {
+          if (Array.isArray(value)) {
+            fieldSet.add(fieldPath)
+            // 如果数组中有对象，递归处理
+            if (value.length > 0 && typeof value[0] === 'object') {
+              traverseObject(value[0], fieldPath)
+            }
+          } else if (typeof value === 'object') {
+            // 对于嵌套对象，既添加父字段也递归处理子字段
+            fieldSet.add(fieldPath)
+            traverseObject(value, fieldPath)
+          } else {
+            fieldSet.add(fieldPath)
+          }
+        }
+      }
+    }
+  }
+  
+  // 分析前20条记录以获取字段结构
+  const sampleSize = Math.min(hits.length, 20)
+  for (let i = 0; i < sampleSize; i++) {
+    if (hits[i]._source) {
+      traverseObject(hits[i]._source)
+    }
+  }
+  
+  return Array.from(fieldSet).sort()
+}
+
+// 计算最佳列宽
+const getOptimalColumnWidth = (fieldName: string, hits: any[]): string => {
+  // 基于字段名称长度的基础宽度
+  const fieldNameLength = fieldName.length
+  let baseWidth = Math.max(80, fieldNameLength * 8 + 40)
+  
+  // 分析字段值的长度（样本前10条记录）
+  const sampleSize = Math.min(hits.length, 10)
+  let maxValueLength = 0
+  
+  for (let i = 0; i < sampleSize; i++) {
+    const value = getFieldValue(hits[i]._source, fieldName)
+    if (value !== null && value !== undefined) {
+      const stringValue = formatFieldValue(value)
+      maxValueLength = Math.max(maxValueLength, stringValue.length)
+    }
+  }
+  
+  // 根据值的长度调整宽度
+  const contentWidth = Math.max(baseWidth, maxValueLength * 8 + 40)
+  
+  // 设置最小和最大宽度限制
+  const finalWidth = Math.max(80, Math.min(300, contentWidth))
+  
+  return `${finalWidth}px`
+}
+
+// 获取嵌套字段的值
+const getFieldValue = (obj: any, fieldPath: string): any => {
+  if (!obj || !fieldPath) return null
+  
+  const keys = fieldPath.split('.')
+  let current = obj
+  
+  for (const key of keys) {
+    if (current && typeof current === 'object' && key in current) {
+      current = current[key]
+    } else {
+      return null
+    }
+  }
+  
+  return current
+}
+
+// 格式化字段值用于显示
+const formatFieldValue = (value: any): string => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]'
+    if (value.length === 1) return formatFieldValue(value[0])
+    return `[${value.length} items]`
+  }
+  
+  if (typeof value === 'object') {
+    return JSON.stringify(value, null, 0)
+  }
+  
+  if (typeof value === 'string' && value.length > 100) {
+    return value.substring(0, 97) + '...'
+  }
+  
+  return String(value)
 }
 
 // 快速搜索
@@ -1063,6 +1260,28 @@ const loadMoreData = async () => {
   }
 }
 
+// 字段选择器方法
+const selectAllFields = () => {
+  if (searchResult.value && searchResult.value.hits) {
+    selectedFields.value = extractFieldsFromResults(searchResult.value.hits)
+  }
+}
+
+const clearFieldSelection = () => {
+  selectedFields.value = []
+}
+
+// 监听搜索结果变化，自动选择前几个字段
+watch(searchResult, (newResult) => {
+  if (newResult && newResult.hits && newResult.hits.length > 0) {
+    const allFields = extractFieldsFromResults(newResult.hits)
+    // 如果用户还没有选择字段，默认选择前5个字段
+    if (selectedFields.value.length === 0 && allFields.length > 0) {
+      selectedFields.value = allFields.slice(0, 5)
+    }
+  }
+}, { immediate: true })
+
 // 行点击事件
 const onRowClick = (item: any, index: number) => {
   console.log('Row clicked:', item, index)
@@ -1323,6 +1542,40 @@ watch(viewMode, (newMode) => {
   position: sticky;
   bottom: 0;
   z-index: 5;
+}
+
+/* 表格单元格样式 */
+.metadata-value {
+  font-size: 0.875rem;
+  color: var(--color-text-2);
+  font-weight: 500;
+}
+
+.field-cell {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.25rem 0;
+}
+
+.field-value {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+  color: var(--color-text-1);
+  line-height: 1.4;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 2.8em;
+}
+
+.field-value:empty::before {
+  content: '-';
+  color: var(--color-text-4);
+  font-style: italic;
 }
 
 /* 虚拟滚动相关样式 */
