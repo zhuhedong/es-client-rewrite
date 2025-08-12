@@ -36,254 +36,256 @@
     <div v-else class="search-content">
       <a-row :gutter="24">
         <!-- 查询配置区域 -->
-        <a-col :span="queryMode === 'simple' ? 10 : 8">
-          <!-- 基本设置卡片 -->
-          <a-card class="config-card">
-            <template #title>
-              <div class="card-title">
-                <icon-filter />
-                <span>查询配置</span>
-              </div>
-            </template>
-            
-            <a-form :model="queryForm" layout="vertical">
-              <a-form-item label="索引名称" required>
-                <a-select 
-                  v-model="queryForm.index" 
-                  placeholder="选择索引"
-                  allow-search
-                  size="large"
-                  @focus="loadIndices"
-                  @change="onIndexChange"
-                >
-                  <a-option 
-                    v-for="index in indexStore.indices" 
-                    :key="index.name" 
-                    :value="index.name"
-                  >
-                    <div class="index-option">
-                      <div class="index-name">{{ index.name }}</div>
-                      <div class="index-info">
-                        文档: {{ formatNumber(index.docs_count || 0) }} | 
-                        大小: {{ index.store_size || 'N/A' }}
-                      </div>
-                    </div>
-                  </a-option>
-                </a-select>
-              </a-form-item>
-
-              <a-row :gutter="12">
-                <a-col :span="12">
-                  <a-form-item label="起始位置">
-                    <a-input-number 
-                      v-model="queryForm.from" 
-                      :min="0" 
-                      placeholder="0"
-                      style="width: 100%"
-                    />
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="返回数量">
-                    <a-input-number 
-                      v-model="queryForm.size" 
-                      :min="1" 
-                      :max="10000"
-                      placeholder="10"
-                      style="width: 100%"
-                    />
-                  </a-form-item>
-                </a-col>
-              </a-row>
-            </a-form>
-          </a-card>
-
-          <!-- 简单查询模式 -->
-          <a-card v-if="queryMode === 'simple'" class="simple-query-card" style="margin-top: 1rem;">
-            <template #title>
-              <div class="card-title">
-                <icon-search />
-                <span>简单查询</span>
-              </div>
-            </template>
-            
-            <!-- 快速搜索 -->
-            <div class="quick-search">
-              <a-input
-                v-model="simpleQuery.quickSearch"
-                placeholder="🔍 搜索所有字段..."
-                size="large"
-                @press-enter="addQuickFilter"
-              >
-                <template #suffix>
-                  <a-button 
-                    type="text" 
-                    @click="addQuickFilter"
-                    :disabled="!simpleQuery.quickSearch"
-                  >
-                    <icon-plus />
-                  </a-button>
-                </template>
-              </a-input>
-            </div>
-
-            <!-- 条件列表 -->
-            <div class="conditions-list" style="margin-top: 1rem;">
-              <div class="section-header">
-                <h4>查询条件</h4>
-                <a-button size="small" @click="showAddConditionModal" type="dashed">
-                  <template #icon>
-                    <icon-plus />
-                  </template>
-                  添加条件
-                </a-button>
-              </div>
+        <a-col :span="8">
+          <div class="query-section">
+            <!-- 基本设置卡片 -->
+            <a-card class="config-card">
+              <template #title>
+                <div class="card-title">
+                  <icon-filter />
+                  <span>查询配置</span>
+                </div>
+              </template>
               
-              <div class="conditions">
-                <div 
-                  v-for="(condition, index) in simpleQuery.conditions" 
-                  :key="condition.id"
-                  class="condition-item"
-                >
-                  <div class="condition-content">
-                    <a-tag :color="getConditionTypeColor(condition.type)">
-                      {{ getConditionTypeLabel(condition.type) }}
-                    </a-tag>
-                    <span class="field-name">{{ condition.field }}</span>
-                    <span class="operator">{{ getOperatorLabel(condition.operator) }}</span>
-                    <span class="condition-value">{{ condition.value }}</span>
-                  </div>
-                  <a-button 
-                    type="text" 
-                    status="danger" 
-                    @click="removeCondition(index)"
-                    size="small"
+              <a-form :model="queryForm" layout="vertical">
+                <a-form-item label="索引名称" required>
+                  <a-select 
+                    v-model="queryForm.index" 
+                    placeholder="选择索引"
+                    allow-search
+                    size="large"
+                    @focus="loadIndices"
+                    @change="onIndexChange"
                   >
+                    <a-option 
+                      v-for="index in indexStore.indices" 
+                      :key="index.name" 
+                      :value="index.name"
+                    >
+                      <div class="index-option">
+                        <div class="index-name">{{ index.name }}</div>
+                        <div class="index-info">
+                          文档: {{ formatNumber(index.docs_count || 0) }} | 
+                          大小: {{ index.store_size || 'N/A' }}
+                        </div>
+                      </div>
+                    </a-option>
+                  </a-select>
+                </a-form-item>
+
+                <a-row :gutter="12">
+                  <a-col :span="12">
+                    <a-form-item label="起始位置">
+                      <a-input-number 
+                        v-model="queryForm.from" 
+                        :min="0" 
+                        placeholder="0"
+                        style="width: 100%"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="返回数量">
+                      <a-input-number 
+                        v-model="queryForm.size" 
+                        :min="1" 
+                        :max="10000"
+                        placeholder="10"
+                        style="width: 100%"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </a-form>
+            </a-card>
+
+            <!-- 简单查询模式 -->
+            <a-card v-if="queryMode === 'simple'" class="simple-query-card">
+              <template #title>
+                <div class="card-title">
+                  <icon-search />
+                  <span>简单查询</span>
+                </div>
+              </template>
+              
+              <!-- 快速搜索 -->
+              <div class="quick-search">
+                <a-input
+                  v-model="simpleQuery.quickSearch"
+                  placeholder="🔍 搜索所有字段..."
+                  size="large"
+                  @press-enter="addQuickFilter"
+                >
+                  <template #suffix>
+                    <a-button 
+                      type="text" 
+                      @click="addQuickFilter"
+                      :disabled="!simpleQuery.quickSearch"
+                    >
+                      <icon-plus />
+                    </a-button>
+                  </template>
+                </a-input>
+              </div>
+
+              <!-- 条件列表 -->
+              <div class="conditions-list" style="margin-top: 1rem;">
+                <div class="section-header">
+                  <h4>查询条件</h4>
+                  <a-button size="small" @click="showAddConditionModal" type="dashed">
                     <template #icon>
-                      <icon-close />
+                      <icon-plus />
                     </template>
+                    添加条件
                   </a-button>
                 </div>
                 
-                <div v-if="simpleQuery.conditions.length === 0" class="empty-conditions">
-                  <a-empty description="暂无查询条件" :image-style="{height: '60px'}">
-                    <template #image>
-                      <icon-filter :size="60" />
-                    </template>
-                  </a-empty>
+                <div class="conditions">
+                  <div 
+                    v-for="(condition, index) in simpleQuery.conditions" 
+                    :key="condition.id"
+                    class="condition-item"
+                  >
+                    <div class="condition-content">
+                      <a-tag :color="getConditionTypeColor(condition.type)">
+                        {{ getConditionTypeLabel(condition.type) }}
+                      </a-tag>
+                      <span class="field-name">{{ condition.field }}</span>
+                      <span class="operator">{{ getOperatorLabel(condition.operator) }}</span>
+                      <span class="condition-value">{{ condition.value }}</span>
+                    </div>
+                    <a-button 
+                      type="text" 
+                      status="danger" 
+                      @click="removeCondition(index)"
+                      size="small"
+                    >
+                      <template #icon>
+                        <icon-close />
+                      </template>
+                    </a-button>
+                  </div>
+                  
+                  <div v-if="simpleQuery.conditions.length === 0" class="empty-conditions">
+                    <a-empty description="暂无查询条件" :image-style="{height: '60px'}">
+                      <template #image>
+                        <icon-filter :size="60" />
+                      </template>
+                    </a-empty>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- 排序设置 -->
-            <div class="sort-section" style="margin-top: 1rem;">
-              <div class="section-header">
-                <h4>排序设置</h4>
-                <a-button size="small" @click="addSort" type="dashed">
-                  <template #icon>
-                    <icon-plus />
-                  </template>
-                  添加排序
-                </a-button>
-              </div>
-              
-              <div class="sort-list">
-                <div 
-                  v-for="(sort, index) in simpleQuery.sort" 
-                  :key="index"
-                  class="sort-item"
-                >
-                  <a-select v-model="sort.field" placeholder="选择字段" style="flex: 1;">
-                    <a-option v-for="field in availableFields" :key="field" :value="field">
-                      {{ field }}
-                    </a-option>
-                  </a-select>
-                  <a-select v-model="sort.order" style="width: 100px;">
-                    <a-option value="asc">升序</a-option>
-                    <a-option value="desc">降序</a-option>
-                  </a-select>
-                  <a-button type="text" status="danger" @click="removeSort(index)">
+              <!-- 排序设置 -->
+              <div class="sort-section" style="margin-top: 1rem;">
+                <div class="section-header">
+                  <h4>排序设置</h4>
+                  <a-button size="small" @click="addSort" type="dashed">
                     <template #icon>
-                      <icon-close />
+                      <icon-plus />
                     </template>
+                    添加排序
                   </a-button>
                 </div>
-              </div>
-            </div>
-          </a-card>
-
-          <!-- 高级查询模式 -->
-          <a-card v-else class="advanced-query-card" style="margin-top: 1rem;">
-            <template #title>
-              <div class="card-title">
-                <icon-code />
-                <span>高级查询</span>
-              </div>
-            </template>
-            
-            <a-form-item label="查询条件（JSON）">
-              <QueryEditor
-                v-model="queryText"
-                placeholder="请输入查询JSON..."
-                height="300px"
-                :connection-id="connectionStore.currentConnection?.id"
-                :selected-index="queryForm.index"
-                :show-validation="true"
-                :format-on-blur="true"
-                :enable-autocomplete="true"
-                @validation-change="onQueryValidationChange"
-              />
-              <div class="autocomplete-hint">
-                <div class="hint-icon">💡</div>
-                <div class="hint-text">
-                  支持字段名和查询语法自动补全，按 <kbd>Ctrl+Space</kbd> 触发补全菜单
+                
+                <div class="sort-list">
+                  <div 
+                    v-for="(sort, index) in simpleQuery.sort" 
+                    :key="index"
+                    class="sort-item"
+                  >
+                    <a-select v-model="sort.field" placeholder="选择字段" style="flex: 1;">
+                      <a-option v-for="field in availableFields" :key="field" :value="field">
+                        {{ field }}
+                      </a-option>
+                    </a-select>
+                    <a-select v-model="sort.order" style="width: 100px;">
+                      <a-option value="asc">升序</a-option>
+                      <a-option value="desc">降序</a-option>
+                    </a-select>
+                    <a-button type="text" status="danger" @click="removeSort(index)">
+                      <template #icon>
+                        <icon-close />
+                      </template>
+                    </a-button>
+                  </div>
                 </div>
               </div>
-            </a-form-item>
+            </a-card>
 
-            <a-form-item label="排序条件（JSON，可选）">
-              <JsonEditor
-                v-model="sortText"
-                placeholder="请输入排序JSON（可选）..."
-                height="120px"
-                :show-validation="true"
-                :format-on-blur="true"
-                @validation-change="onSortValidationChange"
-              />
-            </a-form-item>
+            <!-- 高级查询模式 -->
+            <a-card v-else class="advanced-query-card">
+              <template #title>
+                <div class="card-title">
+                  <icon-code />
+                  <span>高级查询</span>
+                </div>
+              </template>
+              
+              <a-form-item label="查询条件（JSON）">
+                <QueryEditor
+                  v-model="queryText"
+                  placeholder="请输入查询JSON..."
+                  height="300px"
+                  :connection-id="connectionStore.currentConnection?.id"
+                  :selected-index="queryForm.index"
+                  :show-validation="true"
+                  :format-on-blur="true"
+                  :enable-autocomplete="true"
+                  @validation-change="onQueryValidationChange"
+                />
+                <div class="autocomplete-hint">
+                  <div class="hint-icon">💡</div>
+                  <div class="hint-text">
+                    支持字段名和查询语法自动补全，按 <kbd>Ctrl+Space</kbd> 触发补全菜单
+                  </div>
+                </div>
+              </a-form-item>
 
-            <!-- 快速查询模板 -->
-            <a-form-item label="快速模板">
-              <a-space direction="vertical" style="width: 100%">
-                <a-button size="small" @click="setTemplate('match_all')" block>
-                  查询所有
-                </a-button>
-                <a-button size="small" @click="setTemplate('match')" block>
-                  匹配查询
-                </a-button>
-                <a-button size="small" @click="setTemplate('range')" block>
-                  范围查询
-                </a-button>
-                <a-button size="small" @click="setTemplate('bool')" block>
-                  布尔查询
-                </a-button>
-                <a-divider orientation="center">聚合查询</a-divider>
-                <a-button size="small" @click="setTemplate('terms_agg')" block type="outline">
-                  分组聚合
-                </a-button>
-                <a-button size="small" @click="setTemplate('date_histogram')" block type="outline">
-                  时间聚合
-                </a-button>
-                <a-button size="small" @click="setTemplate('stats_agg')" block type="outline">
-                  统计聚合
-                </a-button>
-              </a-space>
-            </a-form-item>
-          </a-card>
+              <a-form-item label="排序条件（JSON，可选）">
+                <JsonEditor
+                  v-model="sortText"
+                  placeholder="请输入排序JSON（可选）..."
+                  height="120px"
+                  :show-validation="true"
+                  :format-on-blur="true"
+                  @validation-change="onSortValidationChange"
+                />
+              </a-form-item>
+
+              <!-- 快速查询模板 -->
+              <a-form-item label="快速模板">
+                <a-space direction="vertical" style="width: 100%">
+                  <a-button size="small" @click="setTemplate('match_all')" block>
+                    查询所有
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('match')" block>
+                    匹配查询
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('range')" block>
+                    范围查询
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('bool')" block>
+                    布尔查询
+                  </a-button>
+                  <a-divider orientation="center">聚合查询</a-divider>
+                  <a-button size="small" @click="setTemplate('terms_agg')" block type="outline">
+                    分组聚合
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('date_histogram')" block type="outline">
+                    时间聚合
+                  </a-button>
+                  <a-button size="small" @click="setTemplate('stats_agg')" block type="outline">
+                    统计聚合
+                  </a-button>
+                </a-space>
+              </a-form-item>
+            </a-card>
+          </div>
         </a-col>
 
         <!-- 查询结果 -->
-        <a-col :span="queryMode === 'simple' ? 14 : 16">
+        <a-col :span="16">
           <a-card class="results-card">
             <template #title>
               <div class="result-title">
@@ -1366,6 +1368,34 @@ watch(viewMode, (newMode) => {
   height: calc(100% - 120px);
 }
 
+/* 查询区域样式 */
+.query-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.query-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.query-section::-webkit-scrollbar-track {
+  background: var(--color-fill-1);
+  border-radius: 3px;
+}
+
+.query-section::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.query-section::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-4);
+}
+
 /* 卡片样式 */
 .config-card,
 .simple-query-card,
@@ -1374,6 +1404,38 @@ watch(viewMode, (newMode) => {
   border-radius: 12px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
+}
+
+.simple-query-card,
+.advanced-query-card {
+  margin-top: 0 !important;
+}
+
+/* 查询结果区域样式 */
+.results-card {
+  height: calc(100vh - 200px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.results-card .arco-card-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.results-card .arco-tabs {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.results-card .arco-tabs-content {
+  flex: 1;
+  overflow: hidden;
 }
 
 .card-title {
