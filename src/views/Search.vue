@@ -34,11 +34,11 @@
     </div>
 
     <div v-else class="search-content">
-      <a-row :gutter="24">
-        <!-- 查询配置区域 -->
-        <a-col :span="8">
-          <div class="query-section">
-            <!-- 基本设置卡片 -->
+      <!-- 上半部分：查询配置和查询条件 -->
+      <div class="query-row">
+        <a-row :gutter="24">
+          <!-- 查询配置区域 -->
+          <a-col :span="12">
             <a-card class="config-card">
               <template #title>
                 <div class="card-title">
@@ -98,7 +98,10 @@
                 </a-row>
               </a-form>
             </a-card>
+          </a-col>
 
+          <!-- 简单查询或高级查询区域 -->
+          <a-col :span="12">
             <!-- 简单查询模式 -->
             <a-card v-if="queryMode === 'simple'" class="simple-query-card">
               <template #title>
@@ -226,7 +229,7 @@
                 <QueryEditor
                   v-model="queryText"
                   placeholder="请输入查询JSON..."
-                  height="300px"
+                  height="200px"
                   :connection-id="connectionStore.currentConnection?.id"
                   :selected-index="queryForm.index"
                   :show-validation="true"
@@ -246,7 +249,7 @@
                 <JsonEditor
                   v-model="sortText"
                   placeholder="请输入排序JSON（可选）..."
-                  height="120px"
+                  height="80px"
                   :show-validation="true"
                   :format-on-blur="true"
                   @validation-change="onSortValidationChange"
@@ -255,38 +258,38 @@
 
               <!-- 快速查询模板 -->
               <a-form-item label="快速模板">
-                <a-space direction="vertical" style="width: 100%">
-                  <a-button size="small" @click="setTemplate('match_all')" block>
+                <a-space size="small" wrap>
+                  <a-button size="small" @click="setTemplate('match_all')">
                     查询所有
                   </a-button>
-                  <a-button size="small" @click="setTemplate('match')" block>
+                  <a-button size="small" @click="setTemplate('match')">
                     匹配查询
                   </a-button>
-                  <a-button size="small" @click="setTemplate('range')" block>
+                  <a-button size="small" @click="setTemplate('range')">
                     范围查询
                   </a-button>
-                  <a-button size="small" @click="setTemplate('bool')" block>
+                  <a-button size="small" @click="setTemplate('bool')">
                     布尔查询
                   </a-button>
-                  <a-divider orientation="center">聚合查询</a-divider>
-                  <a-button size="small" @click="setTemplate('terms_agg')" block type="outline">
+                  <a-button size="small" @click="setTemplate('terms_agg')" type="outline">
                     分组聚合
                   </a-button>
-                  <a-button size="small" @click="setTemplate('date_histogram')" block type="outline">
+                  <a-button size="small" @click="setTemplate('date_histogram')" type="outline">
                     时间聚合
                   </a-button>
-                  <a-button size="small" @click="setTemplate('stats_agg')" block type="outline">
+                  <a-button size="small" @click="setTemplate('stats_agg')" type="outline">
                     统计聚合
                   </a-button>
                 </a-space>
               </a-form-item>
             </a-card>
-          </div>
-        </a-col>
+          </a-col>
+        </a-row>
+      </div>
 
-        <!-- 查询结果 -->
-        <a-col :span="16">
-          <a-card class="results-card">
+      <!-- 下半部分：查询结果 -->
+      <div class="results-row">
+        <a-card class="results-card">
             <template #title>
               <div class="result-title">
                 查询结果
@@ -455,9 +458,9 @@
                 />
               </div>
             </div>
-          </a-card>
-        </a-col>
-      </a-row>
+        </a-card>
+      </div>
+    </div>
 
       <!-- 添加条件弹窗 -->
       <a-modal
@@ -1366,44 +1369,30 @@ watch(viewMode, (newMode) => {
 
 .search-content {
   height: calc(100% - 120px);
-}
-
-/* 查询区域样式 */
-.query-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  height: calc(100vh - 200px);
-  overflow-y: auto;
-  padding-right: 8px;
+  gap: 1.5rem;
 }
 
-.query-section::-webkit-scrollbar {
-  width: 6px;
+/* 查询行样式 */
+.query-row {
+  flex-shrink: 0;
 }
 
-.query-section::-webkit-scrollbar-track {
-  background: var(--color-fill-1);
-  border-radius: 3px;
+/* 结果行样式 */
+.results-row {
+  flex: 1;
+  min-height: 0;
 }
 
-.query-section::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-.query-section::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-4);
-}
-
-/* 卡片样式 */
+/* 查询配置和简单查询卡片样式 */
 .config-card,
 .simple-query-card,
-.advanced-query-card,
-.results-card {
+.advanced-query-card {
   border-radius: 12px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
   border: 1px solid var(--color-border) !important;
+  height: fit-content;
 }
 
 .simple-query-card,
@@ -1413,7 +1402,10 @@ watch(viewMode, (newMode) => {
 
 /* 查询结果区域样式 */
 .results-card {
-  height: calc(100vh - 200px);
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  border: 1px solid var(--color-border) !important;
+  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
